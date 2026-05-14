@@ -55,7 +55,11 @@ const BACKGROUND_PRESETS = [
   '#D1FAE5', '#DBEAFE', '#EDE9FE', '#FCE7F3', '#E0E7FF',
 ];
 
-export default function TemplateBuilder() {
+interface TemplateBuilderProps {
+  onBack?: () => void;
+}
+
+export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const previewCanvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -1210,6 +1214,15 @@ export default function TemplateBuilder() {
         {/* Toolbar */}
         <div className="border-b px-4 py-2 flex items-center justify-between bg-background">
           <div className="flex items-center gap-2">
+            {onBack && (
+              <>
+                <Button variant="outline" size="sm" onClick={onBack}>
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
+                <Separator orientation="vertical" className="h-6 mx-2" />
+              </>
+            )}
             <Button variant="outline" size="sm" onClick={undo}>
               <Undo2 className="w-4 h-4" />
             </Button>

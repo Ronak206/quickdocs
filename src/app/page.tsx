@@ -564,7 +564,7 @@ export default function Dashboard() {
 
   // Template builder uses its own layout
   if (currentView === 'builder') {
-    return <TemplateBuilder />;
+    return <TemplateBuilder onBack={() => setCurrentView('dashboard')} />;
   }
 
   return (
