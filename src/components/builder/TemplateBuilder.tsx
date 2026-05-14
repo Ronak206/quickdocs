@@ -671,7 +671,7 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
     );
 
     return (
-      <ScrollArea className="h-full">
+      <ScrollArea className="h-full w-full">
         <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold capitalize">{type.replace('-', ' ')}</h3>
@@ -1206,15 +1206,15 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
   );
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-screen flex bg-background overflow-hidden">
       {/* Left Sidebar - Toolbox */}
-      <div className="w-64 border-r bg-muted/30 flex flex-col">
-        <div className="p-4 border-b">
+      <div className="w-64 border-r bg-muted/30 flex flex-col shrink-0 h-full">
+        <div className="p-4 border-b shrink-0">
           <h2 className="font-semibold">Elements</h2>
           <p className="text-xs text-muted-foreground">Drag elements to canvas</p>
         </div>
         
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-3 space-y-4">
             {['Text', 'Input', 'Media', 'Layout'].map((category) => (
               <div key={category}>
@@ -1396,11 +1396,11 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
       </div>
 
       {/* Right Sidebar - Properties */}
-      <div className="w-72 border-l bg-muted/30 flex flex-col">
-        <div className="p-4 border-b">
+      <div className="w-72 border-l bg-muted/30 flex flex-col shrink-0 h-full">
+        <div className="p-4 border-b shrink-0">
           <h2 className="font-semibold">Properties</h2>
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {renderPropertiesPanel()}
         </div>
       </div>
