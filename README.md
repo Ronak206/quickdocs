@@ -276,6 +276,12 @@ bun run dev
 - [x] Grid snapping and zoom controls
 - [x] Undo/Redo support
 - [x] Dynamic field mapping
+- [x] **Color picker with presets for fonts, backgrounds, borders**
+- [x] **Background color options for all applicable elements**
+- [x] **Style options (opacity, rotation, shadow)**
+- [x] **Template preview modal**
+- [x] **PDF/JSON export functionality**
+- [x] **Table header background color option**
 
 ### 🔄 Future Enhancements
 - [ ] Real PDF generation with pdfmake integration

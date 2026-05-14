@@ -82,6 +82,7 @@ export interface ElementProperties {
   rows?: number;
   headerRow?: boolean;
   cellPadding?: number;
+  headerBackgroundColor?: string;
   
   // Dropdown specific
   options?: string[];
