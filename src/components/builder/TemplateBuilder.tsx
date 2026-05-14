@@ -20,6 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 
 // Icons
@@ -29,7 +30,7 @@ import {
   QrCode, Barcode, Table, Minus, Square, Plus, MinusCircle,
   ZoomIn, ZoomOut, Grid3X3, Undo2, Redo2, Download, Save,
   Trash2, Copy, Move, RotateCcw, Lock, Unlock, Eye, Settings,
-  Palette, FileText, X, ArrowLeft, Printer, FileDown
+  Palette, FileText, X, ArrowLeft, Printer, FileDown, ChevronRight
 } from 'lucide-react';
 
 // Icon mapping
@@ -71,6 +72,23 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'png' | 'json'>('pdf');
+  
+  // Collapsible sections state
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    position: true,
+    text: true,
+    background: true,
+    border: true,
+    table: true,
+    style: true,
+    dynamic: true,
+    placeholder: true,
+    checkbox: true,
+  });
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const {
     template,
@@ -625,9 +643,36 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
 
     const { type, properties, style } = selectedElement;
 
+    // Collapsible Section Component
+    const CollapsibleSection = ({ 
+      id, 
+      title, 
+      children, 
+      defaultOpen = true 
+    }: { 
+      id: string; 
+      title: string; 
+      children: React.ReactNode; 
+      defaultOpen?: boolean;
+    }) => (
+      <Collapsible
+        open={openSections[id] ?? defaultOpen}
+        onOpenChange={() => toggleSection(id)}
+        className="border rounded-lg"
+      >
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-muted/50 transition-colors">
+          <h4 className="text-sm font-medium">{title}</h4>
+          <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${openSections[id] ?? defaultOpen ? 'rotate-90' : ''}`} />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="p-3 pt-0 space-y-3">
+          {children}
+        </CollapsibleContent>
+      </Collapsible>
+    );
+
     return (
       <ScrollArea className="h-full">
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold capitalize">{type.replace('-', ' ')}</h3>
             <div className="flex gap-1">
@@ -640,11 +685,8 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
             </div>
           </div>
 
-          <Separator />
-
           {/* Position & Size */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Position & Size</h4>
+          <CollapsibleSection id="position" title="Position & Size">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">X (mm)</Label>
@@ -679,15 +721,11 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
                 />
               </div>
             </div>
-          </div>
-
-          <Separator />
+          </CollapsibleSection>
 
           {/* Text properties */}
           {['label', 'textfield', 'textarea', 'number', 'currency', 'date'].includes(type) && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">Text</h4>
-              
+            <CollapsibleSection id="text" title="Text">
               {type === 'label' && (
                 <div>
                   <Label className="text-xs">Text</Label>
@@ -757,26 +795,24 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Background color for most elements */}
           {['label', 'textfield', 'textarea', 'number', 'currency', 'date', 'dropdown', 'rectangle', 'table', 'image', 'logo', 'signature', 'qr-code', 'barcode'].includes(type) && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">Background</h4>
+            <CollapsibleSection id="background" title="Background">
               <ColorPicker
                 value={properties.backgroundColor || 'transparent'}
                 onChange={(color) => updateElement(selectedElement.id, { properties: { ...properties, backgroundColor: color } })}
                 label="Background"
                 presets={BACKGROUND_PRESETS}
               />
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Border properties */}
           {['textfield', 'textarea', 'number', 'currency', 'date', 'dropdown', 'rectangle', 'signature', 'image', 'logo', 'table'].includes(type) && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">Border</h4>
+            <CollapsibleSection id="border" title="Border">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">Width</Label>
@@ -803,13 +839,12 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
                   onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, borderRadius: parseInt(e.target.value) || 0 } })}
                 />
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Table specific */}
           {type === 'table' && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">Table Settings</h4>
+            <CollapsibleSection id="table" title="Table Settings">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">Columns</Label>
@@ -850,12 +885,11 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
                   />
                 </div>
               )}
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Style properties */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Style</h4>
+          <CollapsibleSection id="style" title="Style">
             <div>
               <Label className="text-xs">Opacity: {style.opacity ?? 100}%</Label>
               <Slider
@@ -883,22 +917,21 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
               />
               <Label className="text-xs">Drop Shadow</Label>
             </div>
-          </div>
+          </CollapsibleSection>
 
           {/* Placeholder */}
           {['textfield', 'textarea', 'number', 'currency', 'date', 'dropdown'].includes(type) && (
-            <div>
-              <Label className="text-xs">Placeholder</Label>
+            <CollapsibleSection id="placeholder" title="Placeholder">
               <Input
                 value={properties.placeholder || ''}
                 onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, placeholder: e.target.value } })}
               />
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Checkbox specific */}
           {type === 'checkbox' && (
-            <div className="space-y-3">
+            <CollapsibleSection id="checkbox" title="Checkbox Settings">
               <div>
                 <Label className="text-xs">Label</Label>
                 <Input
@@ -913,12 +946,11 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
                 />
                 <Label className="text-xs">Checked by default</Label>
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Dynamic field mapping */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Dynamic Field</h4>
+          <CollapsibleSection id="dynamic" title="Dynamic Field">
             <div className="flex items-center gap-2">
               <Switch
                 checked={properties.isDynamic || false}
@@ -936,7 +968,7 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
                 />
               </div>
             )}
-          </div>
+          </CollapsibleSection>
         </div>
       </ScrollArea>
     );
