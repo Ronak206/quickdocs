@@ -269,6 +269,14 @@ bun run dev
 - [x] External template scraping infrastructure
 - [x] API Gateway integration
 
+### 🆕 New: Visual Template Builder
+- [x] Drag-and-drop canvas editor
+- [x] 16 element types (Label, Text Field, Image, Table, Signature, etc.)
+- [x] Element properties panel
+- [x] Grid snapping and zoom controls
+- [x] Undo/Redo support
+- [x] Dynamic field mapping
+
 ### 🔄 Future Enhancements
 - [ ] Real PDF generation with pdfmake integration
 - [ ] PDF preview in browser
