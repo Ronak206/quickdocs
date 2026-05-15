@@ -48,6 +48,8 @@ This project follows **SOLID principles** for clean, maintainable code:
 
 ### Completed Features ✅
 
+- **User Authentication** - Secure login/signup with NextAuth.js (Email/Password)
+- **MongoDB Database** - Persistent data storage with Prisma ORM
 - **Drag & Drop Editor** - Intuitive canvas-based template building with @dnd-kit
 - **50+ Element Types** - Comprehensive element library organized in 8 categories
 - **Real-time Preview** - Live preview as you build templates
@@ -69,9 +71,9 @@ This project follows **SOLID principles** for clean, maintainable code:
 | **Form Data Binding** | High | Connect input elements to form data state |
 | **Link Inputs** | High | URL inputs for hyperlink, button navigation elements |
 | **PDF Export Service** | High | Server-side PDF generation with Puppeteer/Playwright |
-| **User Authentication** | Medium | NextAuth.js integration for user accounts |
 | **Template Persistence** | Medium | Save templates to database with Prisma |
 | **Image Upload** | Medium | File upload service for images in templates |
+| **OAuth Integration** | Low | Google, GitHub OAuth providers |
 | **Collaboration** | Low | Real-time collaborative editing |
 | **Version History** | Low | Template version control and rollback |
 | **API Documentation** | Low | REST API for template management |
@@ -100,7 +102,8 @@ This project follows **SOLID principles** for clean, maintainable code:
 | **UI Components** | shadcn/ui |
 | **State Management** | Zustand |
 | **Drag & Drop** | @dnd-kit |
-| **Database** | Prisma ORM |
+| **Database** | MongoDB with Prisma ORM |
+| **Authentication** | NextAuth.js |
 | **Icons** | Lucide React |
 | **Charts** | Recharts |
 
@@ -248,6 +251,15 @@ quickdocs/
 ---
 
 ## API Endpoints
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/[...nextauth]` | NextAuth.js authentication |
+
+### Templates
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|

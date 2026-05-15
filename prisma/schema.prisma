@@ -1,12 +1,12 @@
-// DocuForge Pro - Enterprise PDF Generation Platform
-// Prisma Schema for Document Management System
+// QuickDocs - Professional Document Builder
+// Prisma Schema for MongoDB
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -15,9 +15,10 @@ datasource db {
 // ============================================
 
 model User {
-  id            String     @id @default(cuid())
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
   email         String     @unique
   name          String?
+  password      String     // Hashed password for credentials auth
   company       String?
   logo          String?
   phone         String?
@@ -28,13 +29,52 @@ model User {
   zipCode       String?
   taxId         String?
   website       String?
+  avatar        String?
+  emailVerified DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   
   // Relations
+  accounts      Account[]
+  sessions      Session[]
   documents     Document[]
   templates     Template[]
   activities    Activity[]
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 // ============================================
@@ -42,7 +82,7 @@ model User {
 // ============================================
 
 model Template {
-  id            String           @id @default(cuid())
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
   name          String
   description   String?
   category      TemplateCategory
@@ -65,15 +105,15 @@ model Template {
   updatedAt     DateTime         @updatedAt
   
   // Relations
-  creatorId     String?
+  creatorId     String?          @db.ObjectId
   creator       User?            @relation(fields: [creatorId], references: [id])
   documents     Document[]
   fields        TemplateField[]
 }
 
 model TemplateField {
-  id            String        @id @default(cuid())
-  templateId    String
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  templateId    String        @db.ObjectId
   template      Template      @relation(fields: [templateId], references: [id], onDelete: Cascade)
   name          String
   label         String
@@ -96,14 +136,14 @@ model TemplateField {
 // ============================================
 
 model Document {
-  id            String          @id @default(cuid())
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
   title         String
   documentNumber String?        @unique
   type          DocumentType
   data          String          // JSON document data
-  templateId    String?
+  templateId    String?         @db.ObjectId
   template      Template?       @relation(fields: [templateId], references: [id])
-  ownerId       String
+  ownerId       String          @db.ObjectId
   owner         User            @relation(fields: [ownerId], references: [id])
   status        DocumentStatus  @default(draft)
   pdfUrl        String?
@@ -124,8 +164,8 @@ model Document {
 }
 
 model DocumentItem {
-  id            String     @id @default(cuid())
-  documentId    String
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  documentId    String     @db.ObjectId
   document      Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   name          String
   description   String?
@@ -141,13 +181,13 @@ model DocumentItem {
 }
 
 model DocumentHistory {
-  id            String        @id @default(cuid())
-  documentId    String
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  documentId    String        @db.ObjectId
   document      Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
   action        String
   changes       String?       // JSON of changes made
   previousState String?       // JSON of previous state
-  userId        String?
+  userId        String?       @db.ObjectId
   userName      String?
   createdAt     DateTime      @default(now())
 }
@@ -157,13 +197,13 @@ model DocumentHistory {
 // ============================================
 
 model Activity {
-  id            String      @id @default(cuid())
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
   type          ActivityType
   description   String
   metadata      String?     // JSON additional data
-  userId        String?
+  userId        String?     @db.ObjectId
   user          User?       @relation(fields: [userId], references: [id])
-  documentId    String?
+  documentId    String?     @db.ObjectId
   document      Document?   @relation(fields: [documentId], references: [id])
   createdAt     DateTime    @default(now())
 }
@@ -190,47 +230,34 @@ enum TemplateCategory {
 }
 
 enum DocumentType {
-  // Expense Types
   EXPENSE_REPORT
   EXPENSE_CLAIM
   TRAVEL_EXPENSE
   MONTHLY_EXPENSE
-  
-  // Tender Types
   TENDER_DOCUMENT
   TENDER_PROPOSAL
   BID_DOCUMENT
   TENDER_EVALUATION
   RFP_DOCUMENT
-  
-  // Proposal Types
   BUSINESS_PROPOSAL
   PROJECT_PROPOSAL
   SALES_PROPOSAL
   PARTNERSHIP_PROPOSAL
   GRANT_PROPOSAL
-  
-  // Salary Types
   SALARY_SLIP
   SALARY_CERTIFICATE
   PAYROLL_REPORT
   SALARY_INCREMENT
   OFFER_LETTER
-  
-  // Invoice & Receipt
   INVOICE
   PROFORMA_INVOICE
   RECEIPT
   CREDIT_NOTE
   DEBIT_NOTE
-  
-  // Contract & Agreement
   CONTRACT
   AGREEMENT
   NDA
   SERVICE_AGREEMENT
-  
-  // Other
   REPORT
   LETTER
   CERTIFICATE

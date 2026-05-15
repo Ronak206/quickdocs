@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import TemplateBuilder from '@/components/builder/TemplateBuilder';
 
 // UI Components
@@ -14,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 
 // Icons
@@ -22,7 +25,7 @@ import {
   Plus, Search, Download, Eye, Edit, Trash2, Copy, MoreHorizontal,
   FileSpreadsheet, CreditCard, FileCheck, Clock, TrendingUp,
   Layout, Globe, Menu, X, ChevronRight, FolderOpen,
-  FilePlus2, Palette, Sparkles, Printer
+  FilePlus2, Palette, Sparkles, Printer, LogOut, Loader2, Settings
 } from 'lucide-react';
 
 // Types
@@ -75,12 +78,44 @@ const CATEGORIES = [
 ];
 
 export default function Dashboard() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'templates' | 'builder' | 'history'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [documents, setDocuments] = useState<Document[]>(MOCK_DOCUMENTS);
   const [templates] = useState<Template[]>(MOCK_TEMPLATES);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
+
+  // Show loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (status === 'unauthenticated') {
+    return null;
+  }
 
 
   // Current document being created
@@ -183,7 +218,7 @@ export default function Dashboard() {
       </nav>
 
       {sidebarOpen && (
-        <div className="p-3 border-t mt-auto">
+        <div className="p-3 border-t">
           <p className="text-xs text-muted-foreground mb-2">Categories</p>
           {CATEGORIES.map((cat) => (
             <Button
@@ -197,6 +232,33 @@ export default function Dashboard() {
               {cat.name}
             </Button>
           ))}
+        </div>
+      )}
+
+      {/* User Profile & Logout */}
+      {sidebarOpen && (
+        <div className="p-3 border-t mt-auto">
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={session?.user?.avatar || undefined} />
+              <AvatarFallback>
+                {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{session?.user?.name || 'User'}</p>
+              <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full" 
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign out
+          </Button>
         </div>
       )}
     </div>
