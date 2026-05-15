@@ -154,7 +154,7 @@ export default function Dashboard() {
         {sidebarOpen && (
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            <span className="font-bold">DocuForge</span>
+            <span className="font-bold">QuickDocs</span>
           </div>
         )}
         <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>

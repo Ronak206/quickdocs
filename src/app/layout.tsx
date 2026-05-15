@@ -14,24 +14,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "QuickDocs - Professional Document Builder",
+  description: "Create professional PDF documents with drag-and-drop template builder. Generate invoices, receipts, contracts, and more.",
+  keywords: ["QuickDocs", "PDF Generator", "Document Builder", "Template Editor", "Invoice", "Receipt", "Contract", "Next.js", "React"],
+  authors: [{ name: "QuickDocs Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/favicon.ico",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "QuickDocs - Professional Document Builder",
+    description: "Create professional PDF documents with drag-and-drop template builder",
+    url: "https://quickdocs.app",
+    siteName: "QuickDocs",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "QuickDocs - Professional Document Builder",
+    description: "Create professional PDF documents with drag-and-drop template builder",
   },
 };
 
