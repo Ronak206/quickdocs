@@ -19,7 +19,12 @@ export const metadata: Metadata = {
   keywords: ["QuickDocs", "PDF Generator", "Document Builder", "Template Editor", "Invoice", "Receipt", "Contract", "Next.js", "React"],
   authors: [{ name: "QuickDocs Team" }],
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", type: "image/png", sizes: "1024x1024" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.png",
   },
   openGraph: {
     title: "QuickDocs - Professional Document Builder",
