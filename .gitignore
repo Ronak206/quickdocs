@@ -38,23 +38,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-local-*
-.claude
-.z-ai-config
-*.log
-dev.log
-dev.out.log
-test
-prompt
-server.log
 
-# Project specific
-/skills/
-/examples/
-/mini-services/
-/download/
+# logs
+*.log
+
+# project specific
 /upload/
-/.zscripts/
-/db/*.db
-Caddyfile
-bun.lock
+/db/
