@@ -16,15 +16,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 // Icons
 import { 
-  FileText, Receipt, IndianRupee, Users,
-  Plus, Search, Download, Eye, Trash2,
-  CreditCard, FileCheck, Clock, TrendingUp,
-  Layout, Menu, X, ChevronRight, FolderOpen,
-  FilePlus2, Palette, Printer, LogOut, Loader2, Zap
+  FileText, Receipt, IndianRupee, Users, Building2,
+  Plus, Search, Download, Eye, Edit, Trash2, Copy, MoreHorizontal,
+  FileSpreadsheet, CreditCard, FileCheck, Clock, TrendingUp,
+  Layout, Globe, Menu, X, ChevronRight, FolderOpen,
+  FilePlus2, Palette, Sparkles, Printer, LogOut, Loader2, Settings,
+  ZoomIn, ZoomOut, Save, RotateCcw, Zap
 } from 'lucide-react';
 
 // Types
@@ -83,16 +87,27 @@ const CATEGORIES = [
   { id: 'CONTRACT', name: 'Contract', icon: FileCheck, color: 'bg-red-500' },
 ];
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  INR: '₹',
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
   
   // All state at the top level
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'templates' | 'builder' | 'history'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'templates' | 'builder' | 'history' | 'settings'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Preview state
+  const [previewZoom, setPreviewZoom] = useState(100);
+  const [showPreview, setShowPreview] = useState(true);
   
   // API data state
   const [stats, setStats] = useState<DashboardStats>({ documents: 0, templates: 0, categories: 0, downloads: 0 });
@@ -107,10 +122,13 @@ export default function Dashboard() {
     type: 'INVOICE',
     documentNumber: '',
     date: new Date().toISOString().split('T')[0],
-    client: { name: '', email: '', address: '' },
-    items: [{ name: '', quantity: 1, unitPrice: 0, total: 0 }],
+    dueDate: '',
+    client: { name: '', email: '', address: '', phone: '' },
+    items: [{ name: '', description: '', quantity: 1, unitPrice: 0, total: 0 }],
     notes: '',
+    terms: 'Payment is due within 30 days',
     currency: 'USD',
+    taxRate: 18,
   });
 
   // Company info from localStorage
@@ -119,7 +137,7 @@ export default function Dashboard() {
       const saved = localStorage.getItem('companyInfo');
       if (saved) return JSON.parse(saved);
     }
-    return { name: 'Your Company', email: 'contact@company.com', phone: '+1 555-123-4567' };
+    return { name: 'Your Company', email: 'contact@company.com', phone: '+1 555-123-4567', address: '', taxId: '' };
   });
   
   const setCompanyInfo = (info: any) => {
@@ -147,7 +165,7 @@ export default function Dashboard() {
         setDocuments(docsData.documents);
       }
 
-      // Fetch templates (using seed data for now)
+      // Templates
       const templatesData: Template[] = [
         { id: '1', name: 'Professional Invoice', description: 'Clean invoice template with payment terms', category: 'INVOICE', type: 'INVOICE', downloads: 8900, rating: 4.9, isPublic: true },
         { id: '2', name: 'Expense Report', description: 'Monthly expense tracking template', category: 'EXPENSE', type: 'EXPENSE_REPORT', downloads: 1250, rating: 4.8, isPublic: true },
@@ -198,7 +216,7 @@ export default function Dashboard() {
 
   // Calculate totals
   const subtotal = currentDoc.items.reduce((sum: number, item: any) => sum + (item.total || 0), 0);
-  const taxAmount = subtotal * 0.18;
+  const taxAmount = subtotal * (currentDoc.taxRate / 100);
   const total = subtotal + taxAmount;
 
   // Generate document
@@ -236,32 +254,35 @@ export default function Dashboard() {
       }
 
       toast.success('Document created successfully!');
-      
-      // Refresh data
       fetchData();
       setCurrentView('history');
-      
-      // Reset form
-      setCurrentDoc({
-        title: '',
-        type: 'INVOICE',
-        documentNumber: '',
-        date: new Date().toISOString().split('T')[0],
-        client: { name: '', email: '', address: '' },
-        items: [{ name: '', quantity: 1, unitPrice: 0, total: 0 }],
-        notes: '',
-        currency: 'USD',
-      });
+      resetForm();
     } catch (error) {
       toast.error('Failed to create document');
     }
+  };
+
+  const resetForm = () => {
+    setCurrentDoc({
+      title: '',
+      type: 'INVOICE',
+      documentNumber: '',
+      date: new Date().toISOString().split('T')[0],
+      dueDate: '',
+      client: { name: '', email: '', address: '', phone: '' },
+      items: [{ name: '', description: '', quantity: 1, unitPrice: 0, total: 0 }],
+      notes: '',
+      terms: 'Payment is due within 30 days',
+      currency: 'USD',
+      taxRate: 18,
+    });
   };
 
   // Add item
   const addItem = () => {
     setCurrentDoc({
       ...currentDoc,
-      items: [...currentDoc.items, { name: '', quantity: 1, unitPrice: 0, total: 0 }],
+      items: [...currentDoc.items, { name: '', description: '', quantity: 1, unitPrice: 0, total: 0 }],
     });
   };
 
@@ -280,6 +301,124 @@ export default function Dashboard() {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
+  };
+
+  // Render document preview
+  const renderDocumentPreview = () => {
+    const currencySymbol = CURRENCY_SYMBOLS[currentDoc.currency] || '$';
+    
+    return (
+      <div 
+        className="bg-white shadow-lg rounded-lg overflow-hidden"
+        style={{ 
+          transform: `scale(${previewZoom / 100})`,
+          transformOrigin: 'top center',
+          width: '210mm',
+          minHeight: '297mm',
+        }}
+      >
+        {/* Header */}
+        <div className="p-8 border-b">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{companyInfo.name || 'Your Company'}</h1>
+              <p className="text-sm text-gray-500">{companyInfo.email}</p>
+              <p className="text-sm text-gray-500">{companyInfo.phone}</p>
+              <p className="text-sm text-gray-500">{companyInfo.address}</p>
+            </div>
+            <div className="text-right">
+              <h2 className="text-3xl font-bold text-gray-900">{currentDoc.type}</h2>
+              <p className="text-sm text-gray-500">#{currentDoc.documentNumber || 'DOC-001'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Client & Date Info */}
+        <div className="p-8 border-b">
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Bill To</h3>
+              <p className="font-medium">{currentDoc.client.name || 'Client Name'}</p>
+              <p className="text-sm text-gray-500">{currentDoc.client.email}</p>
+              <p className="text-sm text-gray-500">{currentDoc.client.address}</p>
+            </div>
+            <div className="text-right">
+              <div className="mb-2">
+                <span className="text-sm text-gray-500">Date: </span>
+                <span className="font-medium">{currentDoc.date || new Date().toLocaleDateString()}</span>
+              </div>
+              {currentDoc.dueDate && (
+                <div className="mb-2">
+                  <span className="text-sm text-gray-500">Due Date: </span>
+                  <span className="font-medium">{currentDoc.dueDate}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Items Table */}
+        <div className="p-8">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 text-sm font-semibold text-gray-500">Description</th>
+                <th className="text-center py-3 text-sm font-semibold text-gray-500 w-20">Qty</th>
+                <th className="text-right py-3 text-sm font-semibold text-gray-500 w-24">Price</th>
+                <th className="text-right py-3 text-sm font-semibold text-gray-500 w-24">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentDoc.items.map((item: any, i: number) => (
+                <tr key={i} className="border-b border-gray-100">
+                  <td className="py-3">
+                    <div className="font-medium">{item.name || 'Item'}</div>
+                    {item.description && <div className="text-sm text-gray-500">{item.description}</div>}
+                  </td>
+                  <td className="text-center py-3">{item.quantity}</td>
+                  <td className="text-right py-3">{currencySymbol}{item.unitPrice.toFixed(2)}</td>
+                  <td className="text-right py-3 font-medium">{currencySymbol}{item.total.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Totals */}
+          <div className="mt-6 flex justify-end">
+            <div className="w-64">
+              <div className="flex justify-between py-2">
+                <span className="text-gray-500">Subtotal</span>
+                <span>{currencySymbol}{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-500">Tax ({currentDoc.taxRate}%)</span>
+                <span>{currencySymbol}{taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-2 border-t border-gray-200">
+                <span className="font-bold text-lg">Total</span>
+                <span className="font-bold text-lg">{currencySymbol}{total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {currentDoc.notes && (
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h4 className="text-sm font-semibold text-gray-500 mb-2">Notes</h4>
+              <p className="text-sm text-gray-600">{currentDoc.notes}</p>
+            </div>
+          )}
+
+          {/* Terms */}
+          {currentDoc.terms && (
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold text-gray-500 mb-2">Terms & Conditions</h4>
+              <p className="text-sm text-gray-600">{currentDoc.terms}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   // Render sidebar
@@ -304,6 +443,7 @@ export default function Dashboard() {
           { id: 'templates', label: 'Templates', icon: FolderOpen },
           { id: 'builder', label: 'Template Builder', icon: Palette },
           { id: 'history', label: 'History', icon: Clock },
+          { id: 'settings', label: 'Settings', icon: Settings },
         ].map((item) => (
           <Button
             key={item.id}
@@ -444,9 +584,6 @@ export default function Dashboard() {
               <Progress value={(usage.pdfsUsed / usage.pdfLimit) * 100} className="h-2" />
             </div>
           )}
-          {usage.pdfLimit === -1 && (
-            <p className="text-sm text-muted-foreground">You have unlimited PDF generation!</p>
-          )}
         </CardContent>
       </Card>
 
@@ -520,174 +657,252 @@ export default function Dashboard() {
     </div>
   );
 
-  // Render create form
+  // Render create form with preview
   const renderCreateForm = () => (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Create Document</h1>
-          <p className="text-muted-foreground">Fill in the details</p>
+    <div className="h-screen flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b flex items-center justify-between bg-background">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => setCurrentView('dashboard')}>
+            <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold">Create Document</h1>
+            <p className="text-sm text-muted-foreground">Fill in the details and preview in real-time</p>
+          </div>
         </div>
-        <Button variant="outline" onClick={() => setCurrentView('dashboard')}>Back</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={resetForm}>
+            <RotateCcw className="h-4 w-4 mr-1" />
+            Reset
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
+            <Eye className="h-4 w-4 mr-1" />
+            {showPreview ? 'Hide' : 'Show'} Preview
+          </Button>
+          <Button size="sm" onClick={generateDocument} disabled={!currentDoc.title || usage.pdfsRemaining <= 0}>
+            <Save className="h-4 w-4 mr-1" />
+            Save Document
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-4">
-          {/* Document Info */}
-          <Card>
-            <CardHeader><CardTitle>Document Information</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Document Type</Label>
-                  <Select value={currentDoc.type} onValueChange={(val) => setCurrentDoc({ ...currentDoc, type: val })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="INVOICE">Invoice</SelectItem>
-                      <SelectItem value="RECEIPT">Receipt</SelectItem>
-                      <SelectItem value="EXPENSE_REPORT">Expense Report</SelectItem>
-                      <SelectItem value="SALARY_SLIP">Salary Slip</SelectItem>
-                      <SelectItem value="BUSINESS_PROPOSAL">Proposal</SelectItem>
-                      <SelectItem value="CONTRACT">Contract</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Form */}
+        <div className="w-[400px] border-r overflow-auto bg-muted/30">
+          <Tabs defaultValue="document" className="w-full">
+            <TabsList className="w-full rounded-none border-b">
+              <TabsTrigger value="document" className="flex-1">Document</TabsTrigger>
+              <TabsTrigger value="client" className="flex-1">Client</TabsTrigger>
+              <TabsTrigger value="items" className="flex-1">Items</TabsTrigger>
+              <TabsTrigger value="company" className="flex-1">Company</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="document" className="p-4 space-y-4">
+              <div>
+                <Label>Document Type</Label>
+                <Select value={currentDoc.type} onValueChange={(val) => setCurrentDoc({ ...currentDoc, type: val })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INVOICE">Invoice</SelectItem>
+                    <SelectItem value="RECEIPT">Receipt</SelectItem>
+                    <SelectItem value="EXPENSE_REPORT">Expense Report</SelectItem>
+                    <SelectItem value="SALARY_SLIP">Salary Slip</SelectItem>
+                    <SelectItem value="BUSINESS_PROPOSAL">Proposal</SelectItem>
+                    <SelectItem value="CONTRACT">Contract</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Title *</Label>
+                <Input placeholder="Document title" value={currentDoc.title} onChange={(e) => setCurrentDoc({ ...currentDoc, title: e.target.value })} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Document Number</Label>
                   <Input placeholder="INV-001" value={currentDoc.documentNumber} onChange={(e) => setCurrentDoc({ ...currentDoc, documentNumber: e.target.value })} />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Title *</Label>
-                  <Input placeholder="Document title" value={currentDoc.title} onChange={(e) => setCurrentDoc({ ...currentDoc, title: e.target.value })} />
+                  <Label>Currency</Label>
+                  <Select value={currentDoc.currency} onValueChange={(val) => setCurrentDoc({ ...currentDoc, currency: val })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="INR">INR (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Date</Label>
                   <Input type="date" value={currentDoc.date} onChange={(e) => setCurrentDoc({ ...currentDoc, date: e.target.value })} />
                 </div>
+                <div>
+                  <Label>Due Date</Label>
+                  <Input type="date" value={currentDoc.dueDate} onChange={(e) => setCurrentDoc({ ...currentDoc, dueDate: e.target.value })} />
+                </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Client */}
-          <Card>
-            <CardHeader><CardTitle>Client Information</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Client Name</Label>
-                  <Input placeholder="Client name" value={currentDoc.client.name} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, name: e.target.value } })} />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input placeholder="client@email.com" value={currentDoc.client.email} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, email: e.target.value } })} />
-                </div>
+              <div>
+                <Label>Tax Rate (%)</Label>
+                <Input type="number" value={currentDoc.taxRate} onChange={(e) => setCurrentDoc({ ...currentDoc, taxRate: parseFloat(e.target.value) || 0 })} />
+              </div>
+
+              <div>
+                <Label>Notes</Label>
+                <Textarea placeholder="Additional notes..." value={currentDoc.notes} onChange={(e) => setCurrentDoc({ ...currentDoc, notes: e.target.value })} />
+              </div>
+
+              <div>
+                <Label>Terms & Conditions</Label>
+                <Textarea placeholder="Payment terms..." value={currentDoc.terms} onChange={(e) => setCurrentDoc({ ...currentDoc, terms: e.target.value })} />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="client" className="p-4 space-y-4">
+              <div>
+                <Label>Client Name</Label>
+                <Input placeholder="Client name" value={currentDoc.client.name} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, name: e.target.value } })} />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input placeholder="client@email.com" value={currentDoc.client.email} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, email: e.target.value } })} />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input placeholder="+1 555-123-4567" value={currentDoc.client.phone} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, phone: e.target.value } })} />
               </div>
               <div>
                 <Label>Address</Label>
-                <Textarea placeholder="Address" value={currentDoc.client.address} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, address: e.target.value } })} />
+                <Textarea placeholder="Client address" value={currentDoc.client.address} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, address: e.target.value } })} />
               </div>
-            </CardContent>
-          </Card>
+            </TabsContent>
 
-          {/* Items */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Items</CardTitle>
-              <Button size="sm" variant="outline" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-1" /> Add Item
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {currentDoc.items.map((item: any, i: number) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-5">
-                      <Label className="text-xs">Name</Label>
-                      <Input value={item.name} placeholder="Item name" onChange={(e) => updateItem(i, 'name', e.target.value)} />
+            <TabsContent value="items" className="p-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Items</Label>
+                <Button size="sm" variant="outline" onClick={addItem}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Item
+                </Button>
+              </div>
+
+              {currentDoc.items.map((item: any, i: number) => (
+                <Card key={i} className="p-3">
+                  <div className="space-y-2">
+                    <Input placeholder="Item name" value={item.name} onChange={(e) => updateItem(i, 'name', e.target.value)} />
+                    <Input placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Qty</Label>
+                        <Input type="number" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Price</Label>
+                        <Input type="number" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Total</Label>
+                        <Input disabled value={item.total.toFixed(2)} className="bg-muted" />
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">Qty</Label>
-                      <Input type="number" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', parseFloat(e.target.value) || 0)} />
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">Price</Label>
-                      <Input type="number" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', parseFloat(e.target.value) || 0)} />
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">Total</Label>
-                      <Input disabled value={item.total.toFixed(2)} className="bg-muted" />
-                    </div>
-                    <div className="col-span-1">
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setCurrentDoc({ ...currentDoc, items: currentDoc.items.filter((_: any, idx: number) => idx !== i) })}>
-                        <Trash2 className="h-4 w-4" />
+                    {currentDoc.items.length > 1 && (
+                      <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setCurrentDoc({ ...currentDoc, items: currentDoc.items.filter((_: any, idx: number) => idx !== i) })}>
+                        <Trash2 className="h-4 w-4 mr-1" /> Remove
                       </Button>
-                    </div>
+                    )}
                   </div>
-                ))}
+                </Card>
+              ))}
+
+              {/* Summary */}
+              <Card className="p-4 bg-primary/5">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>{CURRENCY_SYMBOLS[currentDoc.currency] || '$'}{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tax ({currentDoc.taxRate}%)</span>
+                    <span>{CURRENCY_SYMBOLS[currentDoc.currency] || '$'}{taxAmount.toFixed(2)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span className="text-primary">{CURRENCY_SYMBOLS[currentDoc.currency] || '$'}{total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="company" className="p-4 space-y-4">
+              <div>
+                <Label>Company Name</Label>
+                <Input placeholder="Company" value={companyInfo.name} onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })} />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <Label>Email</Label>
+                <Input placeholder="Email" value={companyInfo.email} onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })} />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input placeholder="Phone" value={companyInfo.phone} onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })} />
+              </div>
+              <div>
+                <Label>Address</Label>
+                <Textarea placeholder="Address" value={companyInfo.address} onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })} />
+              </div>
+              <div>
+                <Label>Tax ID</Label>
+                <Input placeholder="Tax ID" value={companyInfo.taxId} onChange={(e) => setCompanyInfo({ ...companyInfo, taxId: e.target.value })} />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {/* Summary */}
-        <div className="space-y-4">
-          {/* PDF Limit Warning */}
-          {usage.pdfLimit > 0 && usage.pdfsRemaining <= 3 && (
-            <Card className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
-              <CardContent className="pt-4">
-                <p className="text-sm text-orange-700 dark:text-orange-400">
-                  ⚠️ Only {usage.pdfsRemaining} PDFs remaining this month
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader><CardTitle>Summary</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Items</span>
-                <span>{currentDoc.items.length}</span>
+        {/* Right Panel - Preview */}
+        {showPreview && (
+          <div className="flex-1 flex flex-col bg-gray-100 overflow-hidden">
+            {/* Zoom Controls */}
+            <div className="p-3 border-b bg-background flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => setPreviewZoom(Math.max(25, previewZoom - 25))}>
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-sm w-16 text-center">{previewZoom}%</span>
+                <Button variant="outline" size="icon" onClick={() => setPreviewZoom(Math.min(200, previewZoom + 25))}>
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax (18%)</span>
-                <span>${taxAmount.toFixed(2)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total</span>
-                <span className="text-primary">${total.toFixed(2)}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-4 space-y-3">
-              <Button className="w-full" size="lg" onClick={generateDocument} disabled={!currentDoc.title}>
-                <Printer className="h-4 w-4 mr-2" />
-                Generate PDF
+              <Slider
+                value={[previewZoom]}
+                onValueChange={([val]) => setPreviewZoom(val)}
+                min={25}
+                max={200}
+                step={25}
+                className="w-48"
+              />
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                <Printer className="h-4 w-4 mr-1" />
+                Print
               </Button>
-              <Button variant="outline" className="w-full">
-                <Eye className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Your Company</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              <Input placeholder="Company" value={companyInfo.name} onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })} />
-              <Input placeholder="Email" value={companyInfo.email} onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })} />
-            </CardContent>
-          </Card>
-        </div>
+            {/* Preview Canvas */}
+            <ScrollArea className="flex-1 p-8">
+              <div className="flex justify-center">
+                {renderDocumentPreview()}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -803,6 +1018,60 @@ export default function Dashboard() {
     </div>
   );
 
+  // Render settings
+  const renderSettings = () => (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground">Manage your account and preferences</p>
+      </div>
+
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+            <CardDescription>Your account information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={session?.user?.avatar || undefined} />
+                <AvatarFallback className="text-xl">
+                  {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">{session?.user?.name || 'User'}</p>
+                <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription</CardTitle>
+            <CardDescription>Your current plan and usage</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5">
+              <div>
+                <p className="font-medium">{plan.displayName} Plan</p>
+                <p className="text-sm text-muted-foreground">
+                  {usage.pdfLimit === -1 ? 'Unlimited' : usage.pdfLimit} PDFs per month
+                </p>
+              </div>
+              {plan.price > 0 && (
+                <span className="text-2xl font-bold">${plan.price}<span className="text-sm font-normal">/mo</span></span>
+              )}
+            </div>
+            <Button className="w-full">Upgrade Plan</Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
   // Template builder uses its own layout
   if (currentView === 'builder') {
     return <TemplateBuilder onBack={() => setCurrentView('dashboard')} />;
@@ -816,6 +1085,7 @@ export default function Dashboard() {
         {currentView === 'create' && renderCreateForm()}
         {currentView === 'templates' && renderTemplates()}
         {currentView === 'history' && renderHistory()}
+        {currentView === 'settings' && renderSettings()}
       </main>
     </div>
   );
