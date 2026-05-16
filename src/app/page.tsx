@@ -427,8 +427,9 @@ export default function Dashboard() {
 
   // Render sidebar
   const renderSidebar = () => (
-    <div className={`bg-background border-r transition-all duration-300 ${sidebarOpen ? 'w-56' : 'w-14'} flex flex-col h-screen sticky top-0`}>
-      <div className="p-3 border-b flex items-center justify-between">
+    <div className={`bg-background border-r transition-all duration-300 ${sidebarOpen ? 'w-56' : 'w-14'} flex flex-col h-screen sticky top-0 overflow-hidden`}>
+      {/* Header - Fixed */}
+      <div className="p-3 border-b flex items-center justify-between shrink-0">
         {sidebarOpen && (
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -440,56 +441,59 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      <nav className="p-2 space-y-1">
-        {[
-          { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-          { id: 'create', label: 'Create Document', icon: FilePlus2 },
-          { id: 'templates', label: 'Templates', icon: FolderOpen },
-          { id: 'builder', label: 'Template Builder', icon: Palette },
-          { id: 'history', label: 'History', icon: Clock },
-          { id: 'settings', label: 'Settings', icon: Settings },
-        ].map((item) => (
-          <Button
-            key={item.id}
-            variant={currentView === item.id ? 'secondary' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => {
-              if (item.id === 'builder') {
-                setSelectedTemplateForBuilder(null);
-              }
-              setCurrentView(item.id as any);
-            }}
-          >
-            <item.icon className="h-4 w-4 mr-2" />
-            {sidebarOpen && item.label}
-          </Button>
-        ))}
-      </nav>
-
-      {sidebarOpen && (
-        <div className="p-3 border-t">
-          <p className="text-xs text-muted-foreground mb-2">Categories</p>
-          {CATEGORIES.map((cat) => (
+      {/* Scrollable Content Area */}
+      <ScrollArea className="flex-1">
+        <nav className="p-2 space-y-1">
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
+            { id: 'create', label: 'Create Document', icon: FilePlus2 },
+            { id: 'templates', label: 'Templates', icon: FolderOpen },
+            { id: 'builder', label: 'Template Builder', icon: Palette },
+            { id: 'history', label: 'History', icon: Clock },
+            { id: 'settings', label: 'Settings', icon: Settings },
+          ].map((item) => (
             <Button
-              key={cat.id}
-              variant={selectedCategory === cat.id ? 'secondary' : 'ghost'}
-              size="sm"
-              className="w-full justify-start mb-1"
-              onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+              key={item.id}
+              variant={currentView === item.id ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => {
+                if (item.id === 'builder') {
+                  setSelectedTemplateForBuilder(null);
+                }
+                setCurrentView(item.id as any);
+              }}
             >
-              <cat.icon className="h-3 w-3 mr-2" />
-              {cat.name}
+              <item.icon className="h-4 w-4 mr-2" />
+              {sidebarOpen && item.label}
             </Button>
           ))}
-        </div>
-      )}
+        </nav>
 
-      {/* User Profile & Logout - Always visible at bottom */}
-      <div className="p-3 border-t mt-auto">
+        {sidebarOpen && (
+          <div className="p-3 border-t mx-2">
+            <p className="text-xs text-muted-foreground mb-2">Categories</p>
+            {CATEGORIES.map((cat) => (
+              <Button
+                key={cat.id}
+                variant={selectedCategory === cat.id ? 'secondary' : 'ghost'}
+                size="sm"
+                className="w-full justify-start mb-1"
+                onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+              >
+                <cat.icon className="h-3 w-3 mr-2" />
+                {cat.name}
+              </Button>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+
+      {/* User Profile & Logout - Fixed at bottom */}
+      <div className="p-3 border-t shrink-0 bg-background">
         {/* Plan Badge - Only when sidebar open */}
         {sidebarOpen && (
           <>
-            <div className="flex items-center justify-between mb-3 p-2 rounded-lg bg-primary/5">
+            <div className="flex items-center justify-between mb-2 p-2 rounded-lg bg-primary/5">
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">{plan.displayName}</span>
@@ -500,7 +504,7 @@ export default function Dashboard() {
             </div>
             
             {/* Usage Progress */}
-            <div className="mb-3">
+            <div className="mb-2">
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-muted-foreground">PDFs this month</span>
                 <span>{usage.pdfsUsed}/{usage.pdfLimit === -1 ? '∞' : usage.pdfLimit}</span>
