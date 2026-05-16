@@ -441,8 +441,8 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* Scrollable Content Area */}
-      <ScrollArea className="flex-1">
+      {/* Scrollable Content Area with visible scrollbar */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
         <nav className="p-2 space-y-1">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
@@ -470,7 +470,7 @@ export default function Dashboard() {
         </nav>
 
         {sidebarOpen && (
-          <div className="p-3 border-t mx-2">
+          <div className="p-3 border-t mx-2 mt-2">
             <p className="text-xs text-muted-foreground mb-2">Categories</p>
             {CATEGORIES.map((cat) => (
               <Button
@@ -486,7 +486,7 @@ export default function Dashboard() {
             ))}
           </div>
         )}
-      </ScrollArea>
+      </div>
 
       {/* User Profile & Logout - Fixed at bottom */}
       <div className="p-3 border-t shrink-0 bg-background">
