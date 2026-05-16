@@ -58,9 +58,16 @@ const BACKGROUND_PRESETS = [
 
 interface TemplateBuilderProps {
   onBack?: () => void;
+  initialTemplate?: {
+    id: string;
+    name: string;
+    description?: string;
+    category: string;
+    type: string;
+  } | null;
 }
 
-export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
+export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBuilderProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const previewCanvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -115,7 +122,29 @@ export default function TemplateBuilder({ onBack }: TemplateBuilderProps) {
     saveToHistory,
     getTemplateJson,
     clearTemplate,
+    loadTemplate,
   } = useTemplateBuilderStore();
+
+  // Load initial template if provided
+  useEffect(() => {
+    if (initialTemplate) {
+      // Create a default template structure with initial template info
+      const newTemplate = {
+        id: `tpl_${Date.now()}`,
+        name: initialTemplate.name,
+        description: initialTemplate.description || '',
+        category: initialTemplate.category,
+        pageSize: { width: 210, height: 297, name: 'A4' },
+        orientation: 'portrait' as const,
+        margins: { top: 20, right: 20, bottom: 20, left: 20 },
+        elements: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      loadTemplate(newTemplate);
+      toast.success(`Editing: ${initialTemplate.name}`);
+    }
+  }, [initialTemplate, loadTemplate]);
 
   // Canvas dimensions (A4 at 96 DPI)
   const canvasWidth = template.pageSize.width * MM_TO_PX;

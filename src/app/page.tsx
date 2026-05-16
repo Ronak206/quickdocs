@@ -110,6 +110,9 @@ export default function Dashboard() {
   const [previewZoom, setPreviewZoom] = useState(100);
   const [showPreview, setShowPreview] = useState(true);
   
+  // Selected template for builder
+  const [selectedTemplateForBuilder, setSelectedTemplateForBuilder] = useState<Template | null>(null);
+  
   // API data state
   const [stats, setStats] = useState<DashboardStats>({ documents: 0, templates: 0, categories: 0, downloads: 0 });
   const [usage, setUsage] = useState<UsageInfo>({ pdfsUsed: 0, pdfLimit: 10, pdfsRemaining: 10, storageUsed: 0 });
@@ -450,7 +453,12 @@ export default function Dashboard() {
             key={item.id}
             variant={currentView === item.id ? 'secondary' : 'ghost'}
             className="w-full justify-start"
-            onClick={() => setCurrentView(item.id as any)}
+            onClick={() => {
+              if (item.id === 'builder') {
+                setSelectedTemplateForBuilder(null);
+              }
+              setCurrentView(item.id as any);
+            }}
           >
             <item.icon className="h-4 w-4 mr-2" />
             {sidebarOpen && item.label}
@@ -932,7 +940,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">Templates</h1>
             <p className="text-muted-foreground">Choose a template or create your own</p>
           </div>
-          <Button onClick={() => setCurrentView('builder')}>
+          <Button onClick={() => { setSelectedTemplateForBuilder(null); setCurrentView('builder'); }}>
             <Palette className="h-4 w-4 mr-2" />
             Create Template
           </Button>
@@ -957,8 +965,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-4 gap-4">
           {filtered.map((t) => (
             <Card key={t.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => {
-              setCurrentDoc({ ...currentDoc, type: t.type, title: `New ${t.name}` });
-              setCurrentView('create');
+              setSelectedTemplateForBuilder(t);
+              setCurrentView('builder');
             }}>
               <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
                 <FileText className="h-10 w-10 text-primary/40" />
@@ -1088,7 +1096,7 @@ export default function Dashboard() {
 
   // Template builder uses its own layout
   if (currentView === 'builder') {
-    return <TemplateBuilder onBack={() => setCurrentView('dashboard')} />;
+    return <TemplateBuilder onBack={() => { setSelectedTemplateForBuilder(null); setCurrentView('dashboard'); }} initialTemplate={selectedTemplateForBuilder} />;
   }
 
   return (
