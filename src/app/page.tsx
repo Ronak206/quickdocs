@@ -20,6 +20,7 @@ import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 // Icons
 import { 
@@ -475,54 +476,67 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* User Profile & Logout */}
-      {sidebarOpen && (
-        <div className="p-3 border-t mt-auto">
-          {/* Plan Badge */}
-          <div className="flex items-center justify-between mb-3 p-2 rounded-lg bg-primary/5">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">{plan.displayName}</span>
+      {/* User Profile & Logout - Always visible at bottom */}
+      <div className="p-3 border-t mt-auto">
+        {/* Plan Badge - Only when sidebar open */}
+        {sidebarOpen && (
+          <>
+            <div className="flex items-center justify-between mb-3 p-2 rounded-lg bg-primary/5">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{plan.displayName}</span>
+              </div>
+              {plan.price > 0 && (
+                <span className="text-xs text-muted-foreground">${plan.price}/mo</span>
+              )}
             </div>
-            {plan.price > 0 && (
-              <span className="text-xs text-muted-foreground">${plan.price}/mo</span>
-            )}
-          </div>
-          
-          {/* Usage Progress */}
-          <div className="mb-3">
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-muted-foreground">PDFs this month</span>
-              <span>{usage.pdfsUsed}/{usage.pdfLimit === -1 ? '∞' : usage.pdfLimit}</span>
+            
+            {/* Usage Progress */}
+            <div className="mb-3">
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-muted-foreground">PDFs this month</span>
+                <span>{usage.pdfsUsed}/{usage.pdfLimit === -1 ? '∞' : usage.pdfLimit}</span>
+              </div>
+              {usage.pdfLimit > 0 && (
+                <Progress value={(usage.pdfsUsed / usage.pdfLimit) * 100} className="h-1.5" />
+              )}
             </div>
-            {usage.pdfLimit > 0 && (
-              <Progress value={(usage.pdfsUsed / usage.pdfLimit) * 100} className="h-1.5" />
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={session?.user?.avatar || undefined} />
-              <AvatarFallback>
-                {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{session?.user?.name || 'User'}</p>
-              <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full" 
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign out
-          </Button>
-        </div>
-      )}
+          </>
+        )}
+        
+        {/* User Dropdown - Always visible */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start p-2 h-auto">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={session?.user?.avatar || undefined} />
+                <AvatarFallback>
+                  {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              {sidebarOpen && (
+                <div className="flex-1 min-w-0 ml-2 text-left">
+                  <p className="text-sm font-medium truncate">{session?.user?.name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
+                </div>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" side="top" className="w-56">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setCurrentView('settings')}>
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 
