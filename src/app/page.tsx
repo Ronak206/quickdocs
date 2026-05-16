@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import TemplateBuilder from '@/components/builder/TemplateBuilder';
@@ -10,22 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 
 // Icons
 import { 
-  FileText, Receipt, IndianRupee, Briefcase, Users, Building2,
-  Plus, Search, Download, Eye, Edit, Trash2, Copy, MoreHorizontal,
-  FileSpreadsheet, CreditCard, FileCheck, Clock, TrendingUp,
-  Layout, Globe, Menu, X, ChevronRight, FolderOpen,
-  FilePlus2, Palette, Sparkles, Printer, LogOut, Loader2, Settings
+  FileText, Receipt, IndianRupee, Users,
+  Plus, Search, Download, Eye, Trash2,
+  CreditCard, FileCheck, Clock, TrendingUp,
+  Layout, Menu, X, ChevronRight, FolderOpen,
+  FilePlus2, Palette, Printer, LogOut, Loader2, Zap
 } from 'lucide-react';
 
 // Types
@@ -41,32 +40,39 @@ interface Template {
   downloads?: number;
   rating?: number;
   isPremium?: boolean;
+  isPublic?: boolean;
 }
 
-interface Document {
+interface DocumentItem {
   id: string;
   title: string;
   type: DocumentType;
-  status: 'draft' | 'pending' | 'approved';
+  status: string;
   createdAt: string;
-  data: any;
+  totalAmount?: number;
+  currency?: string;
 }
 
-// Mock Data
-const MOCK_TEMPLATES: Template[] = [
-  { id: '1', name: 'Professional Invoice', description: 'Clean invoice template with payment terms', category: 'INVOICE', type: 'INVOICE', downloads: 8900, rating: 4.9 },
-  { id: '2', name: 'Expense Report', description: 'Monthly expense tracking template', category: 'EXPENSE', type: 'EXPENSE_REPORT', downloads: 1250, rating: 4.8 },
-  { id: '3', name: 'Salary Slip', description: 'Employee payroll document', category: 'SALARY', type: 'SALARY_SLIP', downloads: 5600, rating: 4.8 },
-  { id: '4', name: 'Business Proposal', description: 'Professional business proposal', category: 'PROPOSAL', type: 'BUSINESS_PROPOSAL', downloads: 3500, rating: 4.7, isPremium: true },
-  { id: '5', name: 'Payment Receipt', description: 'Payment confirmation document', category: 'RECEIPT', type: 'RECEIPT', downloads: 4500, rating: 4.7 },
-  { id: '6', name: 'Service Contract', description: 'Professional service agreement', category: 'CONTRACT', type: 'CONTRACT', downloads: 2800, rating: 4.8, isPremium: true },
-];
+interface DashboardStats {
+  documents: number;
+  templates: number;
+  categories: number;
+  downloads: number;
+}
 
-const MOCK_DOCUMENTS: Document[] = [
-  { id: 'd1', title: 'Invoice #INV-2024-001', type: 'INVOICE', status: 'approved', createdAt: '2024-03-15', data: {} },
-  { id: 'd2', title: 'Salary Slip - March 2024', type: 'SALARY_SLIP', status: 'approved', createdAt: '2024-03-31', data: {} },
-  { id: 'd3', title: 'Expense Report Q1', type: 'EXPENSE_REPORT', status: 'draft', createdAt: '2024-03-31', data: {} },
-];
+interface UsageInfo {
+  pdfsUsed: number;
+  pdfLimit: number;
+  pdfsRemaining: number;
+  storageUsed: number;
+}
+
+interface PlanInfo {
+  name: string;
+  displayName: string;
+  price: number;
+  currency: string;
+}
 
 const CATEGORIES = [
   { id: 'INVOICE', name: 'Invoice', icon: Receipt, color: 'bg-cyan-500' },
@@ -81,15 +87,21 @@ export default function Dashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
   
-  // ALL hooks must be called at the top level, before any conditional returns
+  // All state at the top level
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'templates' | 'builder' | 'history'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [documents, setDocuments] = useState<Document[]>(MOCK_DOCUMENTS);
-  const [templates] = useState<Template[]>(MOCK_TEMPLATES);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // API data state
+  const [stats, setStats] = useState<DashboardStats>({ documents: 0, templates: 0, categories: 0, downloads: 0 });
+  const [usage, setUsage] = useState<UsageInfo>({ pdfsUsed: 0, pdfLimit: 10, pdfsRemaining: 10, storageUsed: 0 });
+  const [plan, setPlan] = useState<PlanInfo>({ name: 'FREE', displayName: 'Free', price: 0, currency: 'USD' });
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
 
-  // Current document being created - MUST be before any conditional returns
+  // Current document being created
   const [currentDoc, setCurrentDoc] = useState<any>({
     title: '',
     type: 'INVOICE',
@@ -101,7 +113,7 @@ export default function Dashboard() {
     currency: 'USD',
   });
 
-  // Load company info from localStorage (initial state) - MUST be before any conditional returns
+  // Company info from localStorage
   const [companyInfo, setCompanyInfoState] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('companyInfo');
@@ -115,12 +127,51 @@ export default function Dashboard() {
     setCompanyInfoState(info);
   };
 
+  // Fetch data from API
+  const fetchData = useCallback(async () => {
+    try {
+      const [statsRes, docsRes] = await Promise.all([
+        fetch('/api/stats'),
+        fetch('/api/documents?limit=10'),
+      ]);
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData.stats);
+        setUsage(statsData.usage);
+        setPlan(statsData.plan);
+      }
+
+      if (docsRes.ok) {
+        const docsData = await docsRes.json();
+        setDocuments(docsData.documents);
+      }
+
+      // Fetch templates (using seed data for now)
+      const templatesData: Template[] = [
+        { id: '1', name: 'Professional Invoice', description: 'Clean invoice template with payment terms', category: 'INVOICE', type: 'INVOICE', downloads: 8900, rating: 4.9, isPublic: true },
+        { id: '2', name: 'Expense Report', description: 'Monthly expense tracking template', category: 'EXPENSE', type: 'EXPENSE_REPORT', downloads: 1250, rating: 4.8, isPublic: true },
+        { id: '3', name: 'Salary Slip', description: 'Employee payroll document', category: 'SALARY', type: 'SALARY_SLIP', downloads: 5600, rating: 4.8, isPublic: true },
+        { id: '4', name: 'Business Proposal', description: 'Professional business proposal', category: 'PROPOSAL', type: 'BUSINESS_PROPOSAL', downloads: 3500, rating: 4.7, isPremium: true, isPublic: true },
+        { id: '5', name: 'Payment Receipt', description: 'Payment confirmation document', category: 'RECEIPT', type: 'RECEIPT', downloads: 4500, rating: 4.7, isPublic: true },
+        { id: '6', name: 'Service Contract', description: 'Professional service agreement', category: 'CONTRACT', type: 'CONTRACT', downloads: 2800, rating: 4.8, isPremium: true, isPublic: true },
+      ];
+      setTemplates(templatesData);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
+    } else if (status === 'authenticated') {
+      fetchData();
     }
-  }, [status, router]);
+  }, [status, router, fetchData]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -129,7 +180,7 @@ export default function Dashboard() {
   };
 
   // Show loading state
-  if (status === 'loading') {
+  if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -151,18 +202,59 @@ export default function Dashboard() {
   const total = subtotal + taxAmount;
 
   // Generate document
-  const generateDocument = () => {
-    const newDoc: Document = {
-      id: `doc_${Date.now()}`,
-      title: currentDoc.title || `New ${currentDoc.type}`,
-      type: currentDoc.type,
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-      data: currentDoc,
-    };
-    setDocuments([newDoc, ...documents]);
-    toast.success('Document created successfully!');
-    setCurrentView('history');
+  const generateDocument = async () => {
+    if (!currentDoc.title) {
+      toast.error('Please enter a document title');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: currentDoc.title,
+          type: currentDoc.type,
+          documentNumber: currentDoc.documentNumber,
+          data: currentDoc,
+          items: currentDoc.items,
+          totalAmount: total,
+          currency: currentDoc.currency,
+          notes: currentDoc.notes,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.error === 'PDF limit reached') {
+          toast.error(result.message || 'PDF limit reached. Please upgrade your plan.');
+        } else {
+          toast.error(result.error || 'Failed to create document');
+        }
+        return;
+      }
+
+      toast.success('Document created successfully!');
+      
+      // Refresh data
+      fetchData();
+      setCurrentView('history');
+      
+      // Reset form
+      setCurrentDoc({
+        title: '',
+        type: 'INVOICE',
+        documentNumber: '',
+        date: new Date().toISOString().split('T')[0],
+        client: { name: '', email: '', address: '' },
+        items: [{ name: '', quantity: 1, unitPrice: 0, total: 0 }],
+        notes: '',
+        currency: 'USD',
+      });
+    } catch (error) {
+      toast.error('Failed to create document');
+    }
   };
 
   // Add item
@@ -181,6 +273,13 @@ export default function Dashboard() {
       items[index].total = (items[index].quantity || 0) * (items[index].unitPrice || 0);
     }
     setCurrentDoc({ ...currentDoc, items });
+  };
+
+  // Format number with suffix
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
   };
 
   // Render sidebar
@@ -239,6 +338,28 @@ export default function Dashboard() {
       {/* User Profile & Logout */}
       {sidebarOpen && (
         <div className="p-3 border-t mt-auto">
+          {/* Plan Badge */}
+          <div className="flex items-center justify-between mb-3 p-2 rounded-lg bg-primary/5">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{plan.displayName}</span>
+            </div>
+            {plan.price > 0 && (
+              <span className="text-xs text-muted-foreground">${plan.price}/mo</span>
+            )}
+          </div>
+          
+          {/* Usage Progress */}
+          <div className="mb-3">
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-muted-foreground">PDFs this month</span>
+              <span>{usage.pdfsUsed}/{usage.pdfLimit === -1 ? '∞' : usage.pdfLimit}</span>
+            </div>
+            {usage.pdfLimit > 0 && (
+              <Progress value={(usage.pdfsUsed / usage.pdfLimit) * 100} className="h-1.5" />
+            )}
+          </div>
+          
           <div className="flex items-center gap-3 mb-3">
             <Avatar className="h-9 w-9">
               <AvatarImage src={session?.user?.avatar || undefined} />
@@ -282,13 +403,13 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Documents', value: documents.length, icon: FileText },
-          { label: 'Templates', value: templates.length, icon: Layout },
-          { label: 'Categories', value: CATEGORIES.length, icon: FolderOpen },
-          { label: 'Downloads', value: '36.5K', icon: Download },
+          { label: 'Documents', value: stats.documents, icon: FileText },
+          { label: 'Templates', value: stats.templates, icon: Layout },
+          { label: 'Categories', value: stats.categories || CATEGORIES.length, icon: FolderOpen },
+          { label: 'Downloads', value: formatNumber(stats.downloads), icon: Download },
         ].map((stat) => (
           <Card key={stat.label}>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 relative">
               <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
               <stat.icon className="h-4 w-4 text-muted-foreground absolute right-4 top-4" />
             </CardHeader>
@@ -298,6 +419,36 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Usage Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-primary" />
+            Monthly Usage
+          </CardTitle>
+          <CardDescription>
+            {usage.pdfLimit === -1 
+              ? 'Unlimited PDF generation with your plan'
+              : `${usage.pdfsRemaining} PDFs remaining this month`
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {usage.pdfLimit > 0 && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>{usage.pdfsUsed} of {usage.pdfLimit} PDFs used</span>
+                <span className="text-muted-foreground">{Math.round((usage.pdfsUsed / usage.pdfLimit) * 100)}%</span>
+              </div>
+              <Progress value={(usage.pdfsUsed / usage.pdfLimit) * 100} className="h-2" />
+            </div>
+          )}
+          {usage.pdfLimit === -1 && (
+            <p className="text-sm text-muted-foreground">You have unlimited PDF generation!</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Create */}
       <Card>
@@ -336,26 +487,34 @@ export default function Dashboard() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {documents.slice(0, 4).map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
-                onClick={() => setCurrentView('history')}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <FileText className="h-4 w-4" />
+          {documents.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p>No documents yet</p>
+              <p className="text-sm">Create your first document to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {documents.slice(0, 4).map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                  onClick={() => setCurrentView('history')}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{doc.title}</p>
+                      <p className="text-xs text-muted-foreground">{doc.type.replace(/_/g, ' ')}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{doc.title}</p>
-                    <p className="text-xs text-muted-foreground">{doc.type.replace(/_/g, ' ')}</p>
-                  </div>
+                  <Badge variant="outline">{doc.status}</Badge>
                 </div>
-                <Badge variant="outline">{doc.status}</Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -474,6 +633,17 @@ export default function Dashboard() {
 
         {/* Summary */}
         <div className="space-y-4">
+          {/* PDF Limit Warning */}
+          {usage.pdfLimit > 0 && usage.pdfsRemaining <= 3 && (
+            <Card className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+              <CardContent className="pt-4">
+                <p className="text-sm text-orange-700 dark:text-orange-400">
+                  ⚠️ Only {usage.pdfsRemaining} PDFs remaining this month
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader><CardTitle>Summary</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -598,28 +768,36 @@ export default function Dashboard() {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="space-y-2">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <FileText className="h-5 w-5" />
+          {documents.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="font-medium">No documents yet</p>
+              <p className="text-sm">Create your first document to see it here</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{doc.title}</p>
+                      <p className="text-sm text-muted-foreground">{doc.type.replace(/_/g, ' ')}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{doc.title}</p>
-                    <p className="text-sm text-muted-foreground">{doc.type.replace(/_/g, ' ')}</p>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={doc.status === 'approved' ? 'default' : 'outline'}>{doc.status}</Badge>
+                    <span className="text-sm text-muted-foreground">{new Date(doc.createdAt).toLocaleDateString()}</span>
+                    <Button variant="ghost" size="icon">
+                      <Download className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant={doc.status === 'approved' ? 'default' : 'outline'}>{doc.status}</Badge>
-                  <span className="text-sm text-muted-foreground">{new Date(doc.createdAt).toLocaleDateString()}</span>
-                  <Button variant="ghost" size="icon">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

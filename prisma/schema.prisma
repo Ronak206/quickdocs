@@ -1,5 +1,11 @@
 // QuickDocs - Professional Document Builder
 // Prisma Schema for MongoDB
+// Following SOLID Principles:
+// - Single Responsibility: Each model has one purpose
+// - Open/Closed: Enums allow extension without modification
+// - Liskov Substitution: Interfaces through consistent relations
+// - Interface Segregation: Models separated by domain
+// - Dependency Inversion: Relations depend on abstractions (IDs)
 
 generator client {
   provider = "prisma-client-js"
@@ -8,6 +14,47 @@ generator client {
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Subscription Plans (Single Responsibility)
+// ============================================
+
+model Plan {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  name              String   @unique // FREE, STARTER, PRO, ENTERPRISE
+  displayName       String   // Free, Starter, Pro, Enterprise
+  description       String?
+  price             Float    @default(0)
+  currency          String   @default("USD")
+  pdfLimit          Int      @default(10) // PDFs per month
+  templateLimit     Int      @default(5) // Custom templates
+  storageLimit      Int      @default(10) // MB
+  features          String   // JSON array of feature strings
+  isPopular         Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  subscriptions     Subscription[]
+}
+
+model Subscription {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @unique @db.ObjectId
+  planId          String   @db.ObjectId
+  status          SubscriptionStatus @default(active)
+  startDate       DateTime @default(now())
+  endDate         DateTime? // null for active subscriptions
+  stripeCustomerId    String?
+  stripeSubscriptionId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            Plan     @relation(fields: [planId], references: [id])
 }
 
 // ============================================
@@ -33,13 +80,15 @@ model User {
   emailVerified DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  
+
   // Relations
   accounts      Account[]
   sessions      Session[]
+  subscription  Subscription?
   documents     Document[]
   templates     Template[]
   activities    Activity[]
+  usage         Usage[]
 }
 
 model Account {
@@ -79,6 +128,28 @@ model VerificationToken {
 }
 
 // ============================================
+// Usage Tracking (Single Responsibility)
+// ============================================
+
+model Usage {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @db.ObjectId
+  month           Int      // 1-12
+  year           Int      // 2024, 2025, etc.
+  pdfCount       Int      @default(0)
+  storageUsed    Int      @default(0) // in bytes
+  templatesUsed  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Unique constraint for one usage record per user per month
+  @@unique([userId, month, year])
+}
+
+// ============================================
 // Template Models
 // ============================================
 
@@ -96,15 +167,18 @@ model Template {
   isPublic      Boolean          @default(false)
   isPremium     Boolean          @default(false)
   isDefault     Boolean          @default(false)
+  isSystem      Boolean          @default(false) // System templates cannot be deleted
   source        String?          // URL if from external source
   sourceName    String?          // Name of external source
   tags          String?          // Comma-separated tags
   version       Int              @default(1)
   downloads     Int              @default(0)
+  uses          Int              @default(0) // Times used in documents
   rating        Float?           // Average rating
+  ratingCount   Int              @default(0)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
-  
+
   // Relations
   creatorId     String?          @db.ObjectId
   creator       User?            @relation(fields: [creatorId], references: [id])
@@ -133,35 +207,46 @@ model TemplateField {
 }
 
 // ============================================
-// Document Models
+// Document Models (with PDF compression)
 // ============================================
 
 model Document {
-  id            String          @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  documentNumber String?        @unique
-  type          DocumentType
-  data          String          // JSON document data
-  templateId    String?         @db.ObjectId
-  template      Template?       @relation(fields: [templateId], references: [id])
-  ownerId       String          @db.ObjectId
-  owner         User            @relation(fields: [ownerId], references: [id])
-  status        DocumentStatus  @default(draft)
-  pdfUrl        String?
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  documentNumber String?
+  type           DocumentType
+  data           String          // JSON document data (compressed)
+  dataHash       String?         // Hash for deduplication
+  compressedSize Int?            // Size in bytes after compression
+  templateId     String?         @db.ObjectId
+  template       Template?       @relation(fields: [templateId], references: [id])
+  ownerId        String          @db.ObjectId
+  owner          User            @relation(fields: [ownerId], references: [id])
+  status         DocumentStatus  @default(draft)
+
+  // PDF Storage (compressed)
+  pdfData        String?         // Base64 encoded compressed PDF
+  pdfUrl         String?         // External URL if stored elsewhere
+  pdfSize        Int?            // Size in bytes
   pdfGeneratedAt DateTime?
-  totalAmount   Float?          // For invoices/expenses
-  currency      String?         @default("USD")
-  validFrom     DateTime?
-  validTo       DateTime?
-  notes         String?
-  tags          String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  
+
+  // Financial info
+  totalAmount    Float?
+  currency       String?         @default("USD")
+
+  // Metadata
+  validFrom      DateTime?
+  validTo        DateTime?
+  notes          String?
+  tags           String?
+  isArchived     Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
   // Relations
-  items         DocumentItem[]
-  history       DocumentHistory[]
-  activities    Activity[]
+  items          DocumentItem[]
+  history        DocumentHistory[]
+  activities     Activity[]
 }
 
 model DocumentItem {
@@ -210,8 +295,16 @@ model Activity {
 }
 
 // ============================================
-// Enums
+// Enums (Open/Closed Principle)
 // ============================================
+
+enum SubscriptionStatus {
+  active
+  canceled
+  expired
+  past_due
+  trialing
+}
 
 enum TemplateCategory {
   EXPENSE
@@ -307,9 +400,12 @@ enum ActivityType {
   DOCUMENT_APPROVED
   DOCUMENT_REJECTED
   DOCUMENT_EXPORTED
+  DOCUMENT_DOWNLOADED
   TEMPLATE_CREATED
   TEMPLATE_UPDATED
   TEMPLATE_DELETED
   USER_LOGIN
   USER_REGISTER
+  PLAN_UPGRADED
+  PLAN_DOWNGRADED
 }

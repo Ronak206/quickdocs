@@ -27,10 +27,10 @@ A powerful drag-and-drop document template builder for creating professional PDF
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
-- [Authentication](#authentication)
 - [Database Models](#database-models)
 - [API Reference](#api-reference)
-- [Element Categories](#element-categories)
+- [Subscription Plans](#subscription-plans)
+- [What's Done & Remaining](#whats-done--remaining)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -38,16 +38,17 @@ A powerful drag-and-drop document template builder for creating professional PDF
 
 ## 🎯 Overview
 
-QuickDocs is a modern, full-stack document generation platform that enables users to create professional PDF documents through an intuitive drag-and-drop interface. Built with Next.js 16, MongoDB, and a microservices-ready architecture, it supports invoices, receipts, contracts, salary slips, and custom templates.
+QuickDocs is a modern, full-stack document generation platform that enables users to create professional PDF documents through an intuitive drag-and-drop interface. Built with Next.js 16, MongoDB, and a microservices-ready architecture following SOLID principles.
 
 ### Key Highlights
 
 - 🔐 **Secure Authentication** - Email/password login with NextAuth.js
+- 📊 **Subscription Plans** - Free, Starter, Pro, Enterprise tiers with PDF limits
 - 📄 **50+ Element Types** - Comprehensive library for document building
+- 🗜️ **Data Compression** - Document data compressed before storage
+- 📈 **Usage Tracking** - Monthly PDF generation limits per plan
 - 🎨 **Visual Editor** - Drag-and-drop canvas with real-time preview
-- 📊 **MongoDB Database** - Scalable data storage with Prisma ORM
 - 📱 **Responsive Design** - Works seamlessly on desktop and tablet
-- 🚀 **Modern Stack** - Next.js 16, TypeScript, Tailwind CSS 4
 
 ---
 
@@ -69,9 +70,15 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │    Data      │  │    Auth      │  │   Storage    │       │
+│  │    Data      │  │    Auth      │  │  Compression │       │
 │  │   Service    │  │   Service    │  │   Service    │       │
-│  │  (Prisma)    │  │  (NextAuth)  │  │  (File/CDN)  │       │
+│  │  (Prisma)    │  │  (NextAuth)  │  │   (Pako)     │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ Subscription │  │    Usage     │  │   Storage    │       │
+│  │   Service    │  │  Tracking    │  │   Service    │       │
+│  │  (Plans)     │  │  (Monthly)   │  │  (File/CDN)  │       │
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -81,11 +88,11 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 
 | Principle | Implementation |
 |-----------|----------------|
-| **S**ingle Responsibility | Each component handles one concern (TemplateBuilder, PropertiesPanel, DataFormPanel) |
-| **O**pen/Closed | Element types are extensible without modifying core rendering logic |
+| **S**ingle Responsibility | Each service handles one concern (CompressionService, StatsAPI, DocumentsAPI) |
+| **O**pen/Closed | Element types and plans are extensible without modifying core logic |
 | **L**iskov Substitution | All element types follow the same `TemplateElement` interface |
 | **I**nterface Segregation | Separate interfaces for different element categories |
-| **D**ependency Inversion | Components depend on abstractions (Zustand store) not concrete implementations |
+| **D**ependency Inversion | Components depend on abstractions (Zustand store, API contracts) |
 
 ---
 
@@ -101,13 +108,18 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 | 🔐 **Auth** | Protected Routes | Dashboard requires authentication |
 | 💾 **Database** | MongoDB Integration | Persistent data storage with Prisma ORM |
 | 💾 **Database** | User Profiles | Store user info, company details |
+| 💾 **Database** | Document Storage | Compressed JSON storage with hash deduplication |
+| 💰 **Subscription** | Plan System | Free (10 PDFs), Starter (50), Pro (200), Enterprise (Unlimited) |
+| 📊 **Usage** | Monthly Tracking | Track PDF generation per month |
+| 📊 **Usage** | PDF Limits | Enforce limits based on subscription plan |
+| 🗜️ **Compression** | Data Compression | Gzip compression for document data |
+| 🗜️ **Compression** | Hash Deduplication | Content hash for deduplication |
 | 🎨 **Editor** | Drag & Drop | Intuitive canvas-based template building |
 | 🎨 **Editor** | 50+ Elements | Comprehensive element library |
 | 🎨 **Editor** | Real-time Preview | Live preview while building |
-| 🎨 **Editor** | Properties Panel | Configure fonts, colors, sizes |
-| 🎨 **Editor** | Data Form Panel | Fill template variables |
-| 📄 **Export** | Multiple Formats | Export to PDF, HTML, or JSON |
-| 📄 **Export** | Template Import | Load templates from JSON |
+| 📄 **API** | Stats API | Fetch dashboard statistics |
+| 📄 **API** | Documents API | CRUD operations for documents |
+| 📄 **API** | Seed API | Initialize plans and templates |
 | 📱 **UI** | Responsive Design | Desktop and tablet support |
 | 📱 **UI** | Dark Mode Ready | Theme provider configured |
 
@@ -115,15 +127,17 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 
 | Priority | Feature | Description |
 |----------|---------|-------------|
+| 🔴 High | PDF Generation | Server-side PDF generation from templates |
 | 🔴 High | Element Functionality | Full implementation of all 50+ elements |
-| 🔴 High | PDF Export Service | Server-side PDF generation |
-| 🔴 High | Form Data Binding | Connect input elements to form state |
-| 🟡 Medium | Template Persistence | Save templates to database |
-| 🟡 Medium | Image Upload | File upload service |
-| 🟡 Medium | Document Storage | Save generated documents |
+| 🔴 High | Stripe Integration | Payment processing for subscriptions |
+| 🟡 Medium | Template Persistence | Save custom templates to database |
+| 🟡 Medium | Image Upload | File upload service for logos, images |
+| 🟡 Medium | Email Verification | Verify user email on signup |
+| 🟡 Medium | Password Reset | Forgot password functionality |
 | 🟢 Low | OAuth Integration | Google, GitHub providers |
 | 🟢 Low | Collaboration | Real-time collaborative editing |
 | 🟢 Low | Version History | Template versioning |
+| 🟢 Low | Audit Logs | Detailed activity logs |
 
 ---
 
@@ -140,6 +154,7 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 | **Database** | MongoDB | Atlas |
 | **ORM** | Prisma | 6.x |
 | **Authentication** | NextAuth.js | 4.x |
+| **Compression** | pako | 2.x |
 | **Icons** | Lucide React | Latest |
 | **Charts** | Recharts | 2.x |
 | **Password Hashing** | bcryptjs | Latest |
@@ -174,6 +189,7 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
    Create a `.env` file in the root directory:
    ```env
    # MongoDB Connection
+   # IMPORTANT: Include database name and URL-encode special characters in password
    DATABASE_URL="mongodb+srv://<username>:<password>@cluster.mongodb.net/quickdocs?retryWrites=true&w=majority"
    
    # NextAuth.js Configuration
@@ -192,14 +208,19 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
    bun run db:push
    ```
 
-5. **Start the development server**
+5. **Seed initial data** (plans & templates)
+   ```bash
+   curl -X POST http://localhost:3000/api/seed
+   ```
+
+6. **Start the development server**
    ```bash
    bun dev
    # or
    npm run dev
    ```
 
-6. **Open in browser**
+7. **Open in browser**
    
    Navigate to [http://localhost:3000](http://localhost:3000)
 
@@ -225,7 +246,10 @@ quickdocs/
 │   │   │   ├── 📂 auth/             # Auth endpoints
 │   │   │   │   ├── 📂 [...nextauth]/ # NextAuth handler
 │   │   │   │   └── 📂 register/     # Registration API
-│   │   │   └── 📂 [...path]/        # Dynamic API routes
+│   │   │   ├── 📂 stats/            # Dashboard statistics
+│   │   │   ├── 📂 documents/        # Document CRUD
+│   │   │   ├── 📂 seed/             # Database seeding
+│   │   │   └── 📂 health/           # Health check
 │   │   ├── 📄 page.tsx              # Dashboard (protected)
 │   │   ├── 📄 layout.tsx            # Root layout
 │   │   └── 📄 globals.css           # Global styles
@@ -243,7 +267,9 @@ quickdocs/
 │   │   ├── 📄 auth.ts               # NextAuth config
 │   │   ├── 📄 db.ts                 # Prisma client
 │   │   ├── 📄 session.ts            # Session helpers
-│   │   └── 📄 utils.ts              # Utility functions
+│   │   ├── 📄 utils.ts              # Utility functions
+│   │   └── 📂 services/             # Business services
+│   │       └── 📄 compression.ts    # Data compression
 │   │
 │   ├── 📂 hooks/                    # Custom React hooks
 │   └── 📂 store/                    # Global state stores
@@ -265,48 +291,9 @@ quickdocs/
 
 ---
 
-## 🔐 Authentication
-
-### User Flow
-
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Signup    │────▶│    Login    │────▶│  Dashboard  │
-│  /signup    │     │   /login    │     │     /       │
-└─────────────┘     └─────────────┘     └─────────────┘
-      │                   │                    │
-      ▼                   ▼                    ▼
-  Create User       Verify Credentials    Protected Route
-  in MongoDB        + Create Session      + User Session
-```
-
-### Protected Routes
-
-The dashboard (`/`) is protected. Unauthenticated users are redirected to `/login`.
-
-```typescript
-// Example: Protecting a page
-const { status } = useSession();
-
-useEffect(() => {
-  if (status === 'unauthenticated') {
-    router.push('/login');
-  }
-}, [status]);
-```
-
-### Session Management
-
-- **Strategy**: JWT-based sessions
-- **Provider**: Credentials (Email/Password)
-- **Password Security**: bcryptjs with 12 rounds
-
----
-
 ## 💾 Database Models
 
 ### User Model
-
 ```prisma
 model User {
   id            String     @id @default(auto())
@@ -315,59 +302,71 @@ model User {
   password      String     // Hashed
   company       String?
   avatar        String?
-  emailVerified DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  
-  accounts      Account[]
-  sessions      Session[]
+  subscription  Subscription?
   documents     Document[]
   templates     Template[]
+  usage         Usage[]
+}
+```
+
+### Subscription Model
+```prisma
+model Subscription {
+  id              String   @id @default(auto())
+  userId          String   @unique
+  planId          String
+  status          SubscriptionStatus @default(active)
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  user            User     @relation(...)
+  plan            Plan     @relation(...)
+}
+```
+
+### Plan Model
+```prisma
+model Plan {
+  id                String   @id @default(auto())
+  name              String   @unique // FREE, STARTER, PRO, ENTERPRISE
+  displayName       String
+  price             Float    @default(0)
+  pdfLimit          Int      @default(10) // PDFs per month
+  templateLimit     Int      @default(5)
+  storageLimit      Int      @default(10) // MB
+  features          String   // JSON array
+  subscriptions     Subscription[]
+}
+```
+
+### Usage Model
+```prisma
+model Usage {
+  id              String   @id @default(auto())
+  userId          String
+  month           Int      // 1-12
+  year            Int      // 2024, 2025, etc.
+  pdfCount        Int      @default(0)
+  storageUsed     Int      @default(0)
+  user            User     @relation(...)
+  
+  @@unique([userId, month, year])
 }
 ```
 
 ### Document Model
-
 ```prisma
 model Document {
-  id            String          @id @default(auto())
-  title         String
-  documentNumber String?
-  type          DocumentType
-  data          String          // JSON
-  status        DocumentStatus  @default(draft)
-  pdfUrl        String?
-  totalAmount   Float?
-  currency      String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  
-  owner         User            @relation(...)
-  template      Template?       @relation(...)
-  items         DocumentItem[]
-}
-```
-
-### Template Model
-
-```prisma
-model Template {
-  id            String           @id @default(auto())
-  name          String
-  description   String?
-  category      TemplateCategory
-  type          DocumentType
-  schema        String           // JSON
-  layout        String           // JSON
-  isPublic      Boolean          @default(false)
-  isPremium     Boolean          @default(false)
-  downloads     Int              @default(0)
-  rating        Float?
-  createdAt     DateTime         @default(now())
-  
-  creator       User?            @relation(...)
-  documents     Document[]
-  fields        TemplateField[]
+  id             String          @id @default(auto())
+  title          String
+  type           DocumentType
+  data           String          // JSON (compressed)
+  dataHash       String?         // For deduplication
+  compressedSize Int?
+  status         DocumentStatus  @default(draft)
+  pdfData        String?         // Base64 encoded compressed PDF
+  pdfSize        Int?
+  owner          User            @relation(...)
+  items          DocumentItem[]
 }
 ```
 
@@ -377,71 +376,139 @@ model Template {
 
 ### Authentication
 
-| Method | Endpoint | Description | Body |
-|--------|----------|-------------|------|
-| `POST` | `/api/auth/register` | Register new user | `{ name, email, password, company? }` |
-| `POST` | `/api/auth/[...nextauth]` | NextAuth handler | - |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/register` | Register new user |
+| `POST` | `/api/auth/[...nextauth]` | NextAuth handler |
 
-### Registration Request/Response
-
-**Request:**
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "securepassword123",
-  "company": "Acme Inc"
-}
-```
-
-**Response (201):**
-```json
-{
-  "message": "User created successfully",
-  "user": {
-    "id": "...",
-    "email": "john@example.com",
-    "name": "John Doe",
-    "company": "Acme Inc"
-  }
-}
-```
-
-### Templates (Planned)
+### Statistics
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/templates` | List all templates |
-| `POST` | `/api/templates` | Create new template |
-| `GET` | `/api/templates/:id` | Get template by ID |
-| `PUT` | `/api/templates/:id` | Update template |
-| `DELETE` | `/api/templates/:id` | Delete template |
+| `GET` | `/api/stats` | Get dashboard stats (documents, templates, usage) |
 
-### Export (Planned)
+**Response:**
+```json
+{
+  "stats": { "documents": 5, "templates": 6, "categories": 6, "downloads": 36500 },
+  "usage": { "pdfsUsed": 3, "pdfLimit": 10, "pdfsRemaining": 7 },
+  "plan": { "name": "FREE", "displayName": "Free", "price": 0 }
+}
+```
+
+### Documents
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/export/pdf` | Export template as PDF |
-| `POST` | `/api/export/html` | Export template as HTML |
+| `GET` | `/api/documents` | List user's documents |
+| `POST` | `/api/documents` | Create new document (checks PDF limit) |
+
+**Create Document Request:**
+```json
+{
+  "title": "Invoice #001",
+  "type": "INVOICE",
+  "documentNumber": "INV-001",
+  "data": { ... },
+  "items": [{ "name": "Item 1", "quantity": 1, "unitPrice": 100 }],
+  "totalAmount": 100
+}
+```
+
+### Seed
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/seed` | Seed plans and default templates |
+
+### Health Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Check database connectivity |
 
 ---
 
-## 🧩 Element Categories
+## 💰 Subscription Plans
 
-The template builder includes **50+ element types** across 8 categories:
+| Plan | Price | PDFs/Month | Templates | Storage |
+|------|-------|------------|-----------|---------|
+| **Free** | $0 | 10 | 5 | 10 MB |
+| **Starter** | $9.99 | 50 | 20 | 100 MB |
+| **Pro** | $29.99 | 200 | 100 | 500 MB |
+| **Enterprise** | $99.99 | Unlimited | Unlimited | 10 GB |
 
-### Summary Table
+---
 
-| Category | Elements | Working |
-|----------|----------|---------|
-| **Text** | Heading, Paragraph, Rich Text, Label | 3/4 |
-| **Input** | Text Field, Textarea, Checkbox, Radio, Select, Toggle, Slider, Rating, Date Picker, etc. | 4/12 |
-| **Media** | Image, Video, Audio | 0/3 |
-| **Shapes** | Rectangle, Ellipse, Line, Polygon, Rounded Box | 4/5 |
-| **Data** | Table, List, Chart, Progress Bar | 1/4 |
-| **Navigation** | Button, Hyperlink | 0/2 |
-| **Decorative** | Badge, Tooltip, Divider, Icon | 3/4 |
-| **Layout** | Container, Columns | 0/2 |
+## 📋 What's Done & Remaining
+
+### ✅ Completed
+
+1. **Authentication System**
+   - User registration with validation
+   - Login with credentials
+   - JWT session management
+   - Protected routes
+
+2. **Database Schema**
+   - User, Account, Session models
+   - Subscription & Plan models
+   - Document & DocumentItem models
+   - Template & TemplateField models
+   - Usage tracking model
+   - Activity logging model
+
+3. **Subscription & Plans**
+   - Plan seeding (Free, Starter, Pro, Enterprise)
+   - Subscription management
+   - PDF limit enforcement
+
+4. **Usage Tracking**
+   - Monthly PDF count tracking
+   - Storage usage tracking
+   - Per-user, per-month records
+
+5. **Document Management**
+   - Create documents with compression
+   - PDF limit checking before creation
+   - Activity logging
+
+6. **Data Compression**
+   - Gzip compression service
+   - Hash deduplication
+   - Size tracking
+
+7. **API Endpoints**
+   - `/api/stats` - Dashboard statistics
+   - `/api/documents` - Document CRUD
+   - `/api/seed` - Database initialization
+   - `/api/health` - System health check
+
+8. **Dashboard UI**
+   - Stats cards with real data
+   - Usage progress bar
+   - Plan indicator
+   - Recent documents list
+
+### 🚧 Remaining
+
+1. **High Priority**
+   - PDF generation from templates
+   - Stripe payment integration
+   - Email verification
+   - Password reset
+
+2. **Medium Priority**
+   - Template saving/loading
+   - Image upload service
+   - Custom template builder improvements
+   - Export to different formats
+
+3. **Low Priority**
+   - OAuth providers (Google, GitHub)
+   - Real-time collaboration
+   - Version history
+   - Audit logs dashboard
 
 ---
 
@@ -457,7 +524,7 @@ Contributions are welcome! Please follow these steps:
 
 ### Development Guidelines
 
-- Follow the existing code style
+- Follow SOLID principles
 - Write meaningful commit messages
 - Update documentation for new features
 - Test your changes before submitting
