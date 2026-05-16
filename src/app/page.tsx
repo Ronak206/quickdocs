@@ -80,12 +80,40 @@ const CATEGORIES = [
 export default function Dashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  
+  // ALL hooks must be called at the top level, before any conditional returns
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'templates' | 'builder' | 'history'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [documents, setDocuments] = useState<Document[]>(MOCK_DOCUMENTS);
   const [templates] = useState<Template[]>(MOCK_TEMPLATES);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Current document being created - MUST be before any conditional returns
+  const [currentDoc, setCurrentDoc] = useState<any>({
+    title: '',
+    type: 'INVOICE',
+    documentNumber: '',
+    date: new Date().toISOString().split('T')[0],
+    client: { name: '', email: '', address: '' },
+    items: [{ name: '', quantity: 1, unitPrice: 0, total: 0 }],
+    notes: '',
+    currency: 'USD',
+  });
+
+  // Load company info from localStorage (initial state) - MUST be before any conditional returns
+  const [companyInfo, setCompanyInfoState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('companyInfo');
+      if (saved) return JSON.parse(saved);
+    }
+    return { name: 'Your Company', email: 'contact@company.com', phone: '+1 555-123-4567' };
+  });
+  
+  const setCompanyInfo = (info: any) => {
+    localStorage.setItem('companyInfo', JSON.stringify(info));
+    setCompanyInfoState(info);
+  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -116,33 +144,6 @@ export default function Dashboard() {
   if (status === 'unauthenticated') {
     return null;
   }
-
-
-  // Current document being created
-  const [currentDoc, setCurrentDoc] = useState<any>({
-    title: '',
-    type: 'INVOICE',
-    documentNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    client: { name: '', email: '', address: '' },
-    items: [{ name: '', quantity: 1, unitPrice: 0, total: 0 }],
-    notes: '',
-    currency: 'USD',
-  });
-
-  // Load company info from localStorage (initial state)
-  const [companyInfo, setCompanyInfoState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('companyInfo');
-      if (saved) return JSON.parse(saved);
-    }
-    return { name: 'Your Company', email: 'contact@company.com', phone: '+1 555-123-4567' };
-  });
-  
-  const setCompanyInfo = (info: any) => {
-    localStorage.setItem('companyInfo', JSON.stringify(info));
-    setCompanyInfoState(info);
-  };
 
   // Calculate totals
   const subtotal = currentDoc.items.reduce((sum: number, item: any) => sum + (item.total || 0), 0);
