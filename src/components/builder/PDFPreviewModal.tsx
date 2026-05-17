@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { pdf } from "@react-pdf/renderer";
-import { PDFDocument } from "./PDFDocument";
+import { useState, useEffect, useCallback } from "react";
 import type { TemplateElement } from "./types";
 
 interface PDFPreviewModalProps {
@@ -26,42 +24,57 @@ export function PDFPreviewModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const generatePDF = useCallback(async () => {
     if (!open) return;
+    
+    setLoading(true);
+    setError(null);
+    
     let objectUrl: string | null = null;
 
-    const generate = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const blob = await pdf(
-          <PDFDocument 
-            title={title} 
-            elements={elements} 
-            pageSize={pageSize}
-            orientation={orientation}
-          />
-        ).toBlob();
-        objectUrl = URL.createObjectURL(blob);
-        setPdfUrl(objectUrl);
-      } catch (err) {
-        console.error("Preview failed:", err);
-        setError("Failed to generate PDF preview");
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      // Dynamic imports for browser-only modules
+      const [{ pdf }, { PDFDocument }] = await Promise.all([
+        import('@react-pdf/renderer').then(mod => ({ pdf: mod.pdf })),
+        import('./PDFDocument').then(mod => ({ PDFDocument: mod.PDFDocument })),
+      ]);
 
-    generate();
+      const blob = await pdf(
+        <PDFDocument 
+          title={title} 
+          elements={elements} 
+          pageSize={pageSize}
+          orientation={orientation}
+        />
+      ).toBlob();
+      
+      objectUrl = URL.createObjectURL(blob);
+      setPdfUrl(objectUrl);
+    } catch (err) {
+      console.error("Preview failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to generate PDF preview");
+    } finally {
+      setLoading(false);
+    }
 
     return () => {
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
-      setPdfUrl(null);
-      setError(null);
     };
   }, [open, elements, title, pageSize, orientation]);
+
+  useEffect(() => {
+    if (open) {
+      const cleanup = generatePDF();
+      return () => {
+        cleanup?.then(fn => fn?.());
+      };
+    } else {
+      setPdfUrl(null);
+      setError(null);
+    }
+  }, [open, generatePDF]);
 
   if (!open) return null;
 

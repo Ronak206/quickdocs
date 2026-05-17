@@ -1,3 +1,6 @@
+// This file uses @react-pdf/renderer which is browser-only
+// It should only be dynamically imported on the client side
+
 import {
   Document,
   Page,
