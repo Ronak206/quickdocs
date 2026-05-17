@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import TemplateBuilder from '@/components/builder/TemplateBuilder';
+import DownloadHistory from '@/components/DownloadHistory';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -680,6 +681,9 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Download History */}
+      <DownloadHistory />
     </div>
   );
 

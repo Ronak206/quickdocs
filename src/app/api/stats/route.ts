@@ -29,6 +29,7 @@ export async function GET() {
       totalDownloads,
       currentUsage,
       subscription,
+      downloadCount,
     ] = await Promise.all([
       // User's documents count
       prisma.document.count({
@@ -78,6 +79,11 @@ export async function GET() {
         where: { userId },
         include: { plan: true },
       }),
+
+      // User's download count
+      prisma.download.count({
+        where: { userId },
+      }),
     ]);
 
     // Calculate PDF limit
@@ -95,6 +101,7 @@ export async function GET() {
         templates: templatesCount,
         categories: categoriesCount,
         downloads: totalDownloads,
+        userDownloads: downloadCount,
       },
       usage: {
         pdfsUsed,

@@ -2754,68 +2754,80 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
     );
   };
 
+  // Helper function to convert blob to base64
+  const blobToBase64 = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
   // Export functions
   const exportAsPDF = async () => {
     try {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast.error('Unable to open print window');
+      // Dynamic import of html2pdf.js to avoid SSR issues
+      const html2pdf = (await import('html2pdf.js')).default;
+
+      const element = document.getElementById('pdf-preview');
+      if (!element) {
+        toast.error('Preview element not found');
         return;
       }
 
-      const printContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${template.name}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: Arial, sans-serif; 
-              width: ${template.pageSize.width}mm;
-              min-height: ${template.pageSize.height}mm;
-              padding: ${template.margins.top}mm ${template.margins.right}mm ${template.margins.bottom}mm ${template.margins.left}mm;
-            }
-            .page { 
-              width: ${template.pageSize.width - template.margins.left - template.margins.right}mm;
-              min-height: ${template.pageSize.height - template.margins.top - template.margins.bottom}mm;
-              position: relative;
-            }
-            .element {
-              position: absolute;
-              overflow: hidden;
-            }
-            @media print {
-              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="page">
-            ${template.elements.map(el => {
-              const fieldValue = el.properties.isDynamic || INPUT_ELEMENT_TYPES.includes(el.type)
-                ? getFieldValue(el.properties.fieldName || el.id, el)
-                : null;
-              return `<div class="element" style="
-                left: ${pixelsToMm(el.position.x)}mm;
-                top: ${pixelsToMm(el.position.y)}mm;
-                width: ${pixelsToMm(el.size.width)}mm;
-                height: ${pixelsToMm(el.size.height)}mm;
-                opacity: ${(el.style.opacity ?? 100) / 100};
-                transform: rotate(${el.style.rotation || 0}deg);
-                z-index: ${el.style.zIndex || 0};
-              ">${fieldValue !== null ? String(fieldValue) : (el.properties.text || '')}</div>`;
-            }).join('')}
-          </div>
-        </body>
-        </html>
-      `;
+      const documentTitle = template.name || 'document';
 
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.print();
-      toast.success('PDF export ready');
+      const options = {
+        margin: [10, 10, 10, 10] as number[],
+        filename: `${documentTitle}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+      };
+
+      toast.info('Generating PDF...');
+
+      // Generate PDF as blob
+      const pdfBlob = await html2pdf()
+        .set(options)
+        .from(element)
+        .outputPdf('blob');
+
+      // Convert to base64
+      const base64 = await blobToBase64(pdfBlob);
+
+      // Save to downloads table
+      try {
+        const response = await fetch('/api/downloads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: documentTitle,
+            fileSize: pdfBlob.size,
+            pdfData: base64,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          if (response.status === 403) {
+            toast.error(error.error || 'PDF limit reached for this month');
+            return;
+          }
+          console.error('Failed to save download:', error);
+        } else {
+          toast.success('PDF saved to download history');
+        }
+      } catch (saveError) {
+        console.error('Save error:', saveError);
+        // Continue with download even if save fails
+      }
+
+      // Trigger the actual download
+      html2pdf().set(options).from(element).save();
+      toast.success('PDF exported successfully');
     } catch (error) {
+      console.error('PDF export error:', error);
       toast.error('Failed to export PDF');
     }
   };
@@ -2962,6 +2974,7 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           <div className="flex justify-center">
             <div
               ref={canvasRef}
+              id="pdf-preview"
               onClick={handleCanvasClick}
               onDrop={handleCanvasDrop}
               onDragOver={handleCanvasDragOver}

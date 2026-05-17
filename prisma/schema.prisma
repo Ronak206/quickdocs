@@ -89,6 +89,7 @@ model User {
   templates     Template[]
   activities    Activity[]
   usage         Usage[]
+  downloads     Download[]
 }
 
 model Account {
@@ -390,6 +391,21 @@ enum FieldType {
   signature
   company
   address
+}
+
+// ============================================
+// Downloads (User PDF Downloads Storage)
+// ============================================
+
+model Download {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  title       String
+  fileSize    Int
+  pdfData     String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum ActivityType {
