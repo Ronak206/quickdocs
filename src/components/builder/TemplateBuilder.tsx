@@ -93,6 +93,7 @@ interface TemplateBuilderProps {
 
 export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBuilderProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const previewCanvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 });
