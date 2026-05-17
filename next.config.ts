@@ -34,11 +34,6 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // Increase the experimental worker memory for build
-  experimental: {
-    // Enable larger memory for build workers
-    workerMemoryLimit: '2048m',
-  },
 };
 
 export default nextConfig;
