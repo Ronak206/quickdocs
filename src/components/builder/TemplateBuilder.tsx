@@ -23,6 +23,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 
+// PDF components - dynamic import for SSR safety
+import { PDFPreviewModal } from './PDFPreviewModal';
+
 // Icons - All needed icons
 import {
   Type, TextCursor, AlignLeft, Hash, DollarSign, Calendar, Clock, Mail, Phone, Link, Lock,
@@ -104,6 +107,10 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['Text', 'Input']);
   const [activeRightTab, setActiveRightTab] = useState<string>('properties');
   const [jsonInput, setJsonInput] = useState<string>('');
+  
+  // PDF Preview Modal state
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
   // Collapsible sections state for properties panel
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -2764,79 +2771,30 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
       reader.readAsDataURL(blob);
     });
 
-  // Export functions
+  // Export PDF using @react-pdf/renderer for vector PDF generation
   const exportAsPDF = async () => {
+    setIsGeneratingPDF(true);
     try {
-      // Dynamic import of html2pdf.js to avoid SSR issues
-      const html2pdf = (await import('html2pdf.js')).default;
-
-      const element = document.getElementById('pdf-preview');
-      if (!element) {
-        toast.error('Preview element not found');
-        return;
-      }
+      // Dynamic import of pdf from @react-pdf/renderer
+      const { pdf } = await import('@react-pdf/renderer');
+      const { PDFDocument } = await import('./PDFDocument');
 
       const documentTitle = template.name || 'document';
 
-      const options = {
-        margin: [10, 10, 10, 10] as number[],
-        filename: `${documentTitle}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          logging: false,
-          onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
-            // Fix lab()/oklab()/oklch() colors that aren't supported by html2canvas
-            const allElements = clonedDoc.querySelectorAll('*');
-            allElements.forEach((el) => {
-              const htmlEl = el as HTMLElement;
-              try {
-                const computedStyle = clonedDoc.defaultView?.getComputedStyle(htmlEl);
-                if (computedStyle) {
-                  // List of color-related CSS properties to fix
-                  const colorProps = [
-                    'color', 'background-color', 'border-color', 
-                    'border-top-color', 'border-bottom-color', 
-                    'border-left-color', 'border-right-color',
-                    'outline-color', 'text-decoration-color',
-                    'column-rule-color', 'accent-color', 'caret-color'
-                  ];
-                  
-                  colorProps.forEach((prop) => {
-                    const value = computedStyle.getPropertyValue(prop);
-                    if (value && (value.includes('lab(') || value.includes('oklab(') || value.includes('oklch('))) {
-                      // Convert to a safe fallback by setting inline style
-                      // For background, use white; for text, use black or dark gray
-                      if (prop === 'background-color') {
-                        htmlEl.style.setProperty(prop, '#ffffff', 'important');
-                      } else if (prop === 'color') {
-                        htmlEl.style.setProperty(prop, '#000000', 'important');
-                      } else {
-                        htmlEl.style.setProperty(prop, '#6b7280', 'important');
-                      }
-                    }
-                  });
-                }
-              } catch {
-                // Skip elements that can't be processed
-              }
-            });
-          }
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-      };
-
       toast.info('Generating PDF...');
 
-      // Generate PDF as blob
-      const pdfBlob = await html2pdf()
-        .set(options)
-        .from(element)
-        .outputPdf('blob');
+      // Generate PDF blob using @react-pdf/renderer
+      const blob = await pdf(
+        <PDFDocument
+          title={documentTitle}
+          elements={template.elements}
+          pageSize={template.pageSize.name as "A4" | "Letter" | "Legal" || "A4"}
+          orientation={template.orientation}
+        />
+      ).toBlob();
 
-      // Convert to base64
-      const base64 = await blobToBase64(pdfBlob);
+      // Convert to base64 for saving to downloads
+      const base64 = await blobToBase64(blob);
 
       // Save to downloads table
       try {
@@ -2845,7 +2803,7 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: documentTitle,
-            fileSize: pdfBlob.size,
+            fileSize: blob.size,
             pdfData: base64,
           }),
         });
@@ -2865,13 +2823,32 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
         // Continue with download even if save fails
       }
 
-      // Trigger the actual download
-      html2pdf().set(options).from(element).save();
+      // Trigger the actual browser download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${documentTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
       toast.success('PDF exported successfully');
     } catch (error) {
       console.error('PDF export error:', error);
       toast.error('Failed to export PDF');
+    } finally {
+      setIsGeneratingPDF(false);
     }
+  };
+
+  // Open PDF preview in modal
+  const openPDFPreview = () => {
+    if (template.elements.length === 0) {
+      toast.error('Add elements to the template first');
+      return;
+    }
+    setPdfPreviewOpen(true);
   };
 
   const handlePrint = () => {
@@ -2993,13 +2970,17 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           <Separator orientation="vertical" className="h-6 mx-2" />
           
           {/* Export */}
+          <Button variant="outline" size="sm" onClick={openPDFPreview} disabled={template.elements.length === 0}>
+            <Eye className="w-4 h-4 mr-1" />
+            Preview PDF
+          </Button>
           <Button variant="outline" size="sm" onClick={exportAsJSON}>
             <Download className="w-4 h-4 mr-1" />
             JSON
           </Button>
-          <Button size="sm" onClick={exportAsPDF}>
+          <Button size="sm" onClick={exportAsPDF} disabled={isGeneratingPDF || template.elements.length === 0}>
             <FileDown className="w-4 h-4 mr-1" />
-            Export PDF
+            {isGeneratingPDF ? 'Generating...' : 'Export PDF'}
           </Button>
         </div>
       </div>
@@ -3087,6 +3068,18 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* PDF Preview Modal */}
+      {pdfPreviewOpen && (
+        <PDFPreviewModal
+          title={template.name}
+          elements={template.elements}
+          pageSize={template.pageSize.name as "A4" | "Letter" | "Legal" || "A4"}
+          orientation={template.orientation}
+          open={pdfPreviewOpen}
+          onClose={() => setPdfPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }
