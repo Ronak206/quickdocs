@@ -2782,7 +2782,48 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
         margin: [10, 10, 10, 10] as number[],
         filename: `${documentTitle}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          logging: false,
+          onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
+            // Fix lab()/oklab()/oklch() colors that aren't supported by html2canvas
+            const allElements = clonedDoc.querySelectorAll('*');
+            allElements.forEach((el) => {
+              const htmlEl = el as HTMLElement;
+              try {
+                const computedStyle = clonedDoc.defaultView?.getComputedStyle(htmlEl);
+                if (computedStyle) {
+                  // List of color-related CSS properties to fix
+                  const colorProps = [
+                    'color', 'background-color', 'border-color', 
+                    'border-top-color', 'border-bottom-color', 
+                    'border-left-color', 'border-right-color',
+                    'outline-color', 'text-decoration-color',
+                    'column-rule-color', 'accent-color', 'caret-color'
+                  ];
+                  
+                  colorProps.forEach((prop) => {
+                    const value = computedStyle.getPropertyValue(prop);
+                    if (value && (value.includes('lab(') || value.includes('oklab(') || value.includes('oklch('))) {
+                      // Convert to a safe fallback by setting inline style
+                      // For background, use white; for text, use black or dark gray
+                      if (prop === 'background-color') {
+                        htmlEl.style.setProperty(prop, '#ffffff', 'important');
+                      } else if (prop === 'color') {
+                        htmlEl.style.setProperty(prop, '#000000', 'important');
+                      } else {
+                        htmlEl.style.setProperty(prop, '#6b7280', 'important');
+                      }
+                    }
+                  });
+                }
+              } catch {
+                // Skip elements that can't be processed
+              }
+            });
+          }
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
       };
 
