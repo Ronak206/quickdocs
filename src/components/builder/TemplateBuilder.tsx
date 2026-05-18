@@ -146,7 +146,7 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
   
   // Document name editing state
   const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState(template.name);
+  const [editedName, setEditedName] = useState('');
   
   // Scroll position state for canvas and properties panel
   const [canvasScrollX, setCanvasScrollX] = useState(0);
@@ -197,6 +197,11 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
     clearTemplate,
     loadTemplate,
   } = useTemplateBuilderStore();
+  
+  // Update editedName when template name changes
+  useEffect(() => {
+    setEditedName(template.name);
+  }, [template.name]);
 
   // Get dynamic fields and input elements for Data Form
   const formFields = useMemo(() => {
