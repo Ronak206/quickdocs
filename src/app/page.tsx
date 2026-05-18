@@ -22,7 +22,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Icons
 import { 
@@ -129,9 +128,6 @@ export default function Dashboard() {
   const [redownloadingId, setRedownloadingId] = useState<string | null>(null);
   
   // Payment state
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showTestPlanModal, setShowTestPlanModal] = useState(false);
-  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
   const [isTestPlan, setIsTestPlan] = useState(false);
@@ -212,57 +208,6 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   }, []);
-
-  // Handle create payment for Pro/Test plan
-  const handleCreatePayment = async (planType: 'PRO' | 'TEST' = 'PRO') => {
-    setIsCreatingPayment(true);
-    try {
-      const response = await fetch('/api/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pay_currency: 'usdttrc20', plan_type: planType }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.isPro) {
-          toast.success('You already have a Pro plan!');
-          setShowPaymentModal(false);
-          setShowTestPlanModal(false);
-          fetchData();
-          return;
-        }
-        throw new Error(data.error || 'Failed to create payment');
-      }
-
-      setPaymentData(data.payment);
-      
-      // For free plan (TEST with 0 price)
-      if (data.isFree) {
-        toast.success('Test plan activated! You now have unlimited PDF generation!');
-        setShowTestPlanModal(false);
-        fetchData();
-        return;
-      }
-      
-      // If there's an invoice URL, open it
-      if (data.invoice_url) {
-        window.open(data.invoice_url, '_blank');
-        toast.success('Payment page opened! Complete your payment to upgrade.');
-      } else {
-        toast.success('Payment created! Send crypto to the address provided.');
-      }
-      
-      // Refresh data to check for updates
-      setTimeout(() => fetchData(), 5000);
-    } catch (error) {
-      console.error('Payment creation error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create payment');
-    } finally {
-      setIsCreatingPayment(false);
-    }
-  };
 
   // Handle cancel plan
   const handleCancelPlan = async () => {
@@ -1335,7 +1280,7 @@ export default function Dashboard() {
             
             {!isPro ? (
               <div className="space-y-3">
-                <Button className="w-full" onClick={() => setShowPaymentModal(true)}>
+                <Button className="w-full" onClick={() => router.push('/payment?plan=PRO&amount=30&currency=USDT')}>
                   <Wallet className="h-4 w-4 mr-2" />
                   Upgrade to Pro
                 </Button>
@@ -1403,7 +1348,7 @@ export default function Dashboard() {
               </div>
               <Button 
                 className="w-full bg-blue-500 hover:bg-blue-600"
-                onClick={() => setShowTestPlanModal(true)}
+                onClick={() => router.push('/payment?plan=TEST&amount=0&currency=USDT')}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Get Test Plan
@@ -1412,175 +1357,6 @@ export default function Dashboard() {
           </Card>
         )}
       </div>
-
-      {/* Test Plan Modal */}
-      <Dialog open={showTestPlanModal} onOpenChange={setShowTestPlanModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-blue-600">
-              <Sparkles className="h-5 w-5" />
-              Get Test Plan (Demo)
-            </DialogTitle>
-            <DialogDescription>
-              Activate Pro features for free - no payment required
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="p-3 rounded-lg bg-muted">
-                <p className="text-muted-foreground">Free Plan</p>
-                <p className="font-bold">10 PDFs/month</p>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <p className="text-blue-600">Test Plan</p>
-                <p className="font-bold text-blue-600">Unlimited PDFs</p>
-              </div>
-            </div>
-            
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-sm font-medium mb-2">Test Plan Features:</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-blue-500" />
-                  Unlimited PDF generation
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-blue-500" />
-                  All Pro features
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-blue-500" />
-                  Free - no payment needed
-                </li>
-              </ul>
-            </div>
-            
-            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <p className="text-sm text-blue-600">
-                <strong>Note:</strong> This is a demo plan for testing purposes. 
-                In production, this would require payment.
-              </p>
-            </div>
-            
-            <div className="space-y-2 pt-2">
-              <Button 
-                className="w-full bg-blue-500 hover:bg-blue-600" 
-                onClick={() => handleCreatePayment('TEST')}
-                disabled={isCreatingPayment}
-              >
-                {isCreatingPayment ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Activating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Activate Test Plan
-                  </>
-                )}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setShowTestPlanModal(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Payment Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wallet className="h-5 w-5" />
-              Upgrade to Pro Plan
-            </DialogTitle>
-            <DialogDescription>
-              Pay 30 USDT once for unlimited PDF generation
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="p-3 rounded-lg bg-muted">
-                <p className="text-muted-foreground">Free Plan</p>
-                <p className="font-bold">10 PDFs/month</p>
-              </div>
-              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-green-600">Pro Plan</p>
-                <p className="font-bold text-green-600">Unlimited PDFs</p>
-              </div>
-            </div>
-            
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-sm font-medium mb-2">Pro Plan Features:</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-500" />
-                  Unlimited PDF generation
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-500" />
-                  Priority support
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-500" />
-                  All future updates
-                </li>
-              </ul>
-            </div>
-            
-            {paymentData?.invoice_url && (
-              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <p className="text-sm mb-2">Payment page opened in new tab</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => window.open(paymentData.invoice_url, '_blank')}
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  Open Payment Page
-                </Button>
-              </div>
-            )}
-            
-            <div className="space-y-2 pt-2">
-              <Button 
-                className="w-full" 
-                onClick={() => handleCreatePayment('PRO')}
-                disabled={isCreatingPayment}
-              >
-                {isCreatingPayment ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating Payment...
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Pay 30 USDT
-                  </>
-                )}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={checkPaymentStatus}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Check Payment Status
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 
