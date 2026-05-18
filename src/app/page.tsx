@@ -29,7 +29,7 @@ import {
   Plus, Search, Download, Eye, Edit, Trash2, Copy, MoreHorizontal,
   FileSpreadsheet, CreditCard, FileCheck, Clock, TrendingUp,
   Layout, Globe, Menu, X, ChevronRight, FolderOpen,
-  FilePlus2, Palette, Sparkles, Printer, LogOut, Loader2, Settings,
+  FilePlus2, Palette, Printer, LogOut, Loader2, Settings,
   ZoomIn, ZoomOut, Save, RotateCcw, Zap, RefreshCw, Check, ExternalLink, Wallet
 } from 'lucide-react';
 
@@ -130,7 +130,6 @@ export default function Dashboard() {
   // Payment state
   const [paymentData, setPaymentData] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
-  const [isTestPlan, setIsTestPlan] = useState(false);
 
   // Current document being created
   const [currentDoc, setCurrentDoc] = useState<any>({
@@ -177,8 +176,7 @@ export default function Dashboard() {
         setStats(statsData.stats);
         setUsage(statsData.usage);
         setPlan(statsData.plan);
-        setIsPro(statsData.plan?.name === 'PRO' || statsData.plan?.name === 'TEST');
-        setIsTestPlan(statsData.plan?.name === 'TEST');
+        setIsPro(statsData.plan?.name === 'PRO');
       }
 
       if (docsRes.ok) {
@@ -238,7 +236,6 @@ export default function Dashboard() {
       
       if (data.isPro) {
         toast.success('Payment confirmed! You are now a Pro user!');
-        setShowPaymentModal(false);
         fetchData();
         return true;
       }
@@ -1251,17 +1248,17 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {isPro && <Badge className={isTestPlan ? "bg-blue-500" : "bg-green-500"}>{isTestPlan ? "TEST" : "PRO"}</Badge>}
+              {isPro && <Badge className="bg-green-500">PRO</Badge>}
               Subscription
             </CardTitle>
             <CardDescription>Your current plan and usage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className={`flex items-center justify-between p-4 rounded-lg ${isPro ? (isTestPlan ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-green-500/10 border border-green-500/20') : 'bg-primary/5'}`}>
+            <div className={`flex items-center justify-between p-4 rounded-lg ${isPro ? 'bg-green-500/10 border border-green-500/20' : 'bg-primary/5'}`}>
               <div>
                 <div className="flex items-center gap-2">
                   <p className="font-medium">{plan.displayName} Plan</p>
-                  {isPro && <Check className={`h-4 w-4 ${isTestPlan ? 'text-blue-600' : 'text-green-600'}`} />}
+                  {isPro && <Check className="h-4 w-4 text-green-600" />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {isPro || usage.pdfLimit === -1 
@@ -1289,10 +1286,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
                   <p className="text-sm text-muted-foreground">
-                    {isTestPlan 
-                      ? 'You have unlimited PDF generation with your Test plan (for demo purposes)'
-                      : 'You have unlimited PDF generation with your Pro plan'
-                    }
+                    You have unlimited PDF generation with your Pro plan
                   </p>
                 </div>
                 <Button 
@@ -1304,58 +1298,8 @@ export default function Dashboard() {
                 </Button>
               </div>
             )}
-            
-            {paymentData && paymentData.status !== 'finished' && !isPro && (
-              <div className="p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">Pending Payment</p>
-                    <p className="text-xs text-muted-foreground">Status: {paymentData.status}</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={checkPaymentStatus}>
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Check Status
-                  </Button>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
-
-        {/* Test Plan Card - Only show if not already on Pro or Test plan */}
-        {!isPro && (
-          <Card className="border-blue-500/30 bg-blue-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-600">
-                <Sparkles className="h-5 w-5" />
-                Test Plan (Demo)
-              </CardTitle>
-              <CardDescription>Try Pro features for free - no payment required</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-background border">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">Test (Demo) Plan</p>
-                    <Badge variant="outline" className="text-blue-600 border-blue-500">FREE</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Unlimited PDFs for testing</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-2xl font-bold">0<span className="text-sm font-normal"> USDT</span></span>
-                  <p className="text-xs text-muted-foreground">free for testing</p>
-                </div>
-              </div>
-              <Button 
-                className="w-full bg-blue-500 hover:bg-blue-600"
-                onClick={() => router.push('/payment?plan=TEST&amount=0&currency=USDT')}
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Get Test Plan
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

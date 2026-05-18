@@ -7,7 +7,6 @@ import { createInvoice, createPayment } from '@/lib/nowpayments';
 // Plan prices
 const PLAN_PRICES = {
   PRO: { price: 30, currency: 'USDT' },
-  TEST: { price: 0, currency: 'USDT' }, // Free test plan
 };
 
 // Webhook URL for NOWPayments
@@ -28,21 +27,21 @@ export async function POST(req: NextRequest) {
     const { pay_currency = 'usdttrc20', plan_type = 'PRO' } = await req.json().catch(() => ({}));
 
     // Validate plan type
-    if (!['PRO', 'TEST'].includes(plan_type)) {
-      return NextResponse.json({ error: 'Invalid plan type' }, { status: 400 });
+    if (plan_type !== 'PRO') {
+      return NextResponse.json({ error: 'Invalid plan type. Only PRO plan is available.' }, { status: 400 });
     }
 
     const planPrice = PLAN_PRICES[plan_type as keyof typeof PLAN_PRICES];
 
-    // Check if user already has Pro or Test plan
+    // Check if user already has Pro plan
     const existingSubscription = await prisma.subscription.findUnique({
       where: { userId },
       include: { plan: true },
     });
 
-    if (existingSubscription?.plan?.name === 'PRO' || existingSubscription?.plan?.name === 'TEST') {
+    if (existingSubscription?.plan?.name === 'PRO') {
       return NextResponse.json({ 
-        error: `You already have a ${existingSubscription.plan.name} plan`,
+        error: 'You already have a PRO plan',
         isPro: true 
       }, { status: 400 });
     }
@@ -76,52 +75,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `${plan_type} plan not found` }, { status: 500 });
     }
 
-    // For TEST plan with 0 price, skip NOWPayments and directly activate
-    if (planPrice.price === 0) {
-      // Create a mock payment record
-      const payment = await prisma.payment.create({
-        data: {
-          userId,
-          paymentId: `test-free-${Date.now()}`,
-          invoiceId: null,
-          orderId,
-          amount: 0,
-          payCurrency: 'USDT',
-          status: 'finished',
-          paidAt: new Date(),
-        },
-      });
-
-      // Create or update subscription
-      if (existingSubscription) {
-        await prisma.subscription.update({
-          where: { userId },
-          data: {
-            planId: plan.id,
-            status: 'active',
-            startDate: new Date(),
-            endDate: null,
-          },
-        });
-      } else {
-        await prisma.subscription.create({
-          data: {
-            userId,
-            planId: plan.id,
-            status: 'active',
-          },
-        });
-      }
-
-      return NextResponse.json({
-        success: true,
-        payment,
-        isFree: true,
-        message: 'Test plan activated successfully!',
-      });
-    }
-
-    // Create payment with NOWPayments for paid plans
+    // Create payment with NOWPayments
     const paymentData = {
       price_amount: planPrice.price,
       price_currency: 'usd',
@@ -210,7 +164,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       payment,
       subscription,
-      isPro: subscription?.plan?.name === 'PRO' || subscription?.plan?.name === 'TEST',
+      isPro: subscription?.plan?.name === 'PRO',
       planName: subscription?.plan?.name,
     });
   } catch (error) {

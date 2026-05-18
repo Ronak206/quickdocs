@@ -42,25 +42,6 @@ const plans = [
     isPopular: true,
     isActive: true,
   },
-  {
-    name: 'TEST',
-    displayName: 'Test (Demo)',
-    description: 'Test plan for demo purposes - same as Pro but free',
-    price: 0,
-    currency: 'USD',
-    pdfLimit: 999999, // Same as Pro
-    templateLimit: 999999,
-    storageLimit: 1000,
-    features: JSON.stringify([
-      'Unlimited PDF downloads (TEST)',
-      'Unlimited custom templates',
-      '1 GB storage',
-      'All document types',
-      'For testing purposes only',
-    ]),
-    isPopular: false,
-    isActive: true,
-  },
 ];
 
 export async function GET() {
