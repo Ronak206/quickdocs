@@ -153,9 +153,10 @@ export default function Dashboard() {
   // Fetch data from API
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, docsRes] = await Promise.all([
+      const [statsRes, docsRes, templatesRes] = await Promise.all([
         fetch('/api/stats'),
         fetch('/api/documents?limit=10'),
+        fetch('/api/templates'),
       ]);
 
       if (statsRes.ok) {
@@ -170,16 +171,10 @@ export default function Dashboard() {
         setDocuments(docsData.documents);
       }
 
-      // Templates
-      const templatesData: Template[] = [
-        { id: '1', name: 'Professional Invoice', description: 'Clean invoice template with payment terms', category: 'INVOICE', type: 'INVOICE', downloads: 8900, rating: 4.9, isPublic: true },
-        { id: '2', name: 'Expense Report', description: 'Monthly expense tracking template', category: 'EXPENSE', type: 'EXPENSE_REPORT', downloads: 1250, rating: 4.8, isPublic: true },
-        { id: '3', name: 'Salary Slip', description: 'Employee payroll document', category: 'SALARY', type: 'SALARY_SLIP', downloads: 5600, rating: 4.8, isPublic: true },
-        { id: '4', name: 'Business Proposal', description: 'Professional business proposal', category: 'PROPOSAL', type: 'BUSINESS_PROPOSAL', downloads: 3500, rating: 4.7, isPremium: true, isPublic: true },
-        { id: '5', name: 'Payment Receipt', description: 'Payment confirmation document', category: 'RECEIPT', type: 'RECEIPT', downloads: 4500, rating: 4.7, isPublic: true },
-        { id: '6', name: 'Service Contract', description: 'Professional service agreement', category: 'CONTRACT', type: 'CONTRACT', downloads: 2800, rating: 4.8, isPremium: true, isPublic: true },
-      ];
-      setTemplates(templatesData);
+      if (templatesRes.ok) {
+        const templatesData = await templatesRes.json();
+        setTemplates(templatesData.templates ?? []);
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
