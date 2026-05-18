@@ -47,6 +47,8 @@ interface Template {
   rating?: number;
   isPremium?: boolean;
   isPublic?: boolean;
+  isSystem?: boolean;
+  creatorId?: string;
 }
 
 interface DocumentItem {
@@ -936,6 +938,32 @@ export default function Dashboard() {
   const renderTemplates = () => {
     const filtered = templates.filter(t => !selectedCategory || t.category === selectedCategory);
     
+    const handleDeleteTemplate = async (e: React.MouseEvent, templateId: string, templateName: string) => {
+      e.stopPropagation();
+      
+      if (!confirm(`Are you sure you want to delete "${templateName}"?`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/templates/${templateId}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          toast.error(error.error || 'Failed to delete template');
+          return;
+        }
+        
+        toast.success('Template deleted successfully');
+        fetchData();
+      } catch (error) {
+        console.error('Delete error:', error);
+        toast.error('Failed to delete template');
+      }
+    };
+    
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -965,29 +993,49 @@ export default function Dashboard() {
           </Select>
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
-          {filtered.map((t) => (
-            <Card key={t.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => {
-              setSelectedTemplateForBuilder(t);
-              setCurrentView('builder');
-            }}>
-              <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
-                <FileText className="h-10 w-10 text-primary/40" />
-                {t.isPremium && <Badge className="absolute top-2 right-2" variant="secondary">Premium</Badge>}
-              </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">{t.name}</CardTitle>
-                <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between text-xs">
-                  <Badge variant="outline">{t.category}</Badge>
-                  <span className="text-muted-foreground">{t.downloads?.toLocaleString()} downloads</span>
+        {filtered.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <FileText className="h-12 w-12 mb-3 opacity-50" />
+              <p className="font-medium">No templates found</p>
+              <p className="text-sm">Create your first template to get started</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-4 gap-4">
+            {filtered.map((t) => (
+              <Card key={t.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group relative" onClick={() => {
+                setSelectedTemplateForBuilder(t);
+                setCurrentView('builder');
+              }}>
+                <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
+                  <FileText className="h-10 w-10 text-primary/40" />
+                  {t.isPremium && <Badge className="absolute top-2 right-2" variant="secondary">Premium</Badge>}
+                  {!t.isSystem && t.creatorId && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 left-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleDeleteTemplate(e, t.id, t.name)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">{t.name}</CardTitle>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between text-xs">
+                    <Badge variant="outline">{t.category}</Badge>
+                    <span className="text-muted-foreground">{t.downloads?.toLocaleString() ?? 0} downloads</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     );
   };

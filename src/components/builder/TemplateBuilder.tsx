@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useTemplateBuilderStore } from './store';
 import type { TemplateElement, ElementType, Position, Size } from './types';
 import { mmToPixels, pixelsToMm, ELEMENT_TOOLBOX } from './types';
@@ -36,7 +37,7 @@ import {
   Trash2, Copy, Move, RotateCcw, Lock as LockIcon, Unlock, Eye, Settings, EyeOff,
   FileText, X, ArrowLeft, Printer, FileDown, ChevronRight, ChevronUp, Table,
   Award, MessageSquare, Columns, Box, BarChart, Gauge, Layers, Sparkles,
-  File, FileCheck, RefreshCw, Check, ExternalLink, Play, Pause
+  File, FileCheck, RefreshCw, Check, ExternalLink, Play, Pause, GripVertical
 } from 'lucide-react';
 
 // Icon mapping for dynamic icon rendering
@@ -2921,131 +2922,254 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Top Toolbar */}
-      <div className="border-b bg-card px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {onBack && (
-            <Button variant="ghost" size="sm" onClick={onBack}>
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Back
-            </Button>
-          )}
-          <Separator orientation="vertical" className="h-6" />
-          <h2 className="font-semibold">{template.name}</h2>
-          <Badge variant="outline">{template.category}</Badge>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          {/* Zoom controls */}
-          <div className="flex items-center gap-1 mr-2">
-            <Button variant="ghost" size="icon" onClick={() => setZoom(zoom - 0.1)}>
-              <ZoomOut className="w-4 h-4" />
-            </Button>
-            <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
-            <Button variant="ghost" size="icon" onClick={() => setZoom(zoom + 0.1)}>
-              <ZoomIn className="w-4 h-4" />
-            </Button>
+      {/* Header with Paper Size Options */}
+      <div className="border-b bg-card">
+        {/* Top Toolbar Row */}
+        <div className="px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <Button variant="ghost" size="sm" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </Button>
+            )}
+            <Separator orientation="vertical" className="h-6" />
+            <h2 className="font-semibold">{template.name}</h2>
+            <Badge variant="outline">{template.category}</Badge>
           </div>
           
-          <Separator orientation="vertical" className="h-6 mx-2" />
+          <div className="flex items-center gap-1">
+            {/* Zoom controls */}
+            <div className="flex items-center gap-1 mr-2">
+              <Button variant="ghost" size="icon" onClick={() => setZoom(zoom - 0.1)}>
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
+              <Button variant="ghost" size="icon" onClick={() => setZoom(zoom + 0.1)}>
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <Separator orientation="vertical" className="h-6 mx-2" />
+            
+            {/* Grid controls */}
+            <Button variant={showGrid ? 'default' : 'ghost'} size="icon" onClick={toggleGrid}>
+              <Grid3X3 className="w-4 h-4" />
+            </Button>
+            <Button variant={snapToGrid ? 'default' : 'ghost'} size="icon" onClick={toggleSnapToGrid}>
+              {snapToGrid ? <LockIcon className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            </Button>
+            
+            <Separator orientation="vertical" className="h-6 mx-2" />
+            
+            {/* History */}
+            <Button variant="ghost" size="icon" onClick={undo}>
+              <Undo2 className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={redo}>
+              <Redo2 className="w-4 h-4" />
+            </Button>
+            
+            <Separator orientation="vertical" className="h-6 mx-2" />
+            
+            {/* Export */}
+            <Button variant="outline" size="sm" onClick={openPDFPreview} disabled={template.elements.length === 0}>
+              <Eye className="w-4 h-4 mr-1" />
+              Preview PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportAsJSON}>
+              <Download className="w-4 h-4 mr-1" />
+              JSON
+            </Button>
+            <Button size="sm" onClick={exportAsPDF} disabled={isGeneratingPDF || template.elements.length === 0}>
+              <FileDown className="w-4 h-4 mr-1" />
+              {isGeneratingPDF ? 'Generating...' : 'Export PDF'}
+            </Button>
+          </div>
+        </div>
+        
+        {/* Paper Settings Row */}
+        <div className="px-4 py-2 border-t flex items-center gap-6 bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Page Size:</Label>
+            <Select 
+              value={template.pageSize.name} 
+              onValueChange={(val) => {
+                const sizes: Record<string, { width: number; height: number; name: string }> = {
+                  'A4': { width: 210, height: 297, name: 'A4' },
+                  'A3': { width: 297, height: 420, name: 'A3' },
+                  'A5': { width: 148, height: 210, name: 'A5' },
+                  'Letter': { width: 215.9, height: 279.4, name: 'Letter' },
+                  'Legal': { width: 215.9, height: 355.6, name: 'Legal' },
+                  'Tabloid': { width: 279.4, height: 431.8, name: 'Tabloid' },
+                };
+                const size = sizes[val] || sizes['A4'];
+                setTemplate({ ...template, pageSize: size });
+              }}
+            >
+              <SelectTrigger className="w-24 h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A4">A4</SelectItem>
+                <SelectItem value="A3">A3</SelectItem>
+                <SelectItem value="A5">A5</SelectItem>
+                <SelectItem value="Letter">Letter</SelectItem>
+                <SelectItem value="Legal">Legal</SelectItem>
+                <SelectItem value="Tabloid">Tabloid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
-          {/* Grid controls */}
-          <Button variant={showGrid ? 'default' : 'ghost'} size="icon" onClick={toggleGrid}>
-            <Grid3X3 className="w-4 h-4" />
-          </Button>
-          <Button variant={snapToGrid ? 'default' : 'ghost'} size="icon" onClick={toggleSnapToGrid}>
-            {snapToGrid ? <LockIcon className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Orientation:</Label>
+            <Select 
+              value={template.orientation} 
+              onValueChange={(val) => {
+                const newOrientation = val as 'portrait' | 'landscape';
+                const currentPageSize = template.pageSize;
+                // Swap width and height if orientation changes
+                if (newOrientation !== template.orientation) {
+                  setTemplate({ 
+                    ...template, 
+                    orientation: newOrientation,
+                    pageSize: {
+                      ...currentPageSize,
+                      width: currentPageSize.height,
+                      height: currentPageSize.width,
+                    }
+                  });
+                }
+              }}
+            >
+              <SelectTrigger className="w-24 h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="portrait">Portrait</SelectItem>
+                <SelectItem value="landscape">Landscape</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
-          <Separator orientation="vertical" className="h-6 mx-2" />
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Dimensions:</Label>
+            <span className="text-xs font-mono">
+              {Math.round(template.pageSize.width)} × {Math.round(template.pageSize.height)} mm
+            </span>
+          </div>
           
-          {/* History */}
-          <Button variant="ghost" size="icon" onClick={undo}>
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={redo}>
-            <Redo2 className="w-4 h-4" />
-          </Button>
+          <Separator orientation="vertical" className="h-4" />
           
-          <Separator orientation="vertical" className="h-6 mx-2" />
-          
-          {/* Export */}
-          <Button variant="outline" size="sm" onClick={openPDFPreview} disabled={template.elements.length === 0}>
-            <Eye className="w-4 h-4 mr-1" />
-            Preview PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportAsJSON}>
-            <Download className="w-4 h-4 mr-1" />
-            JSON
-          </Button>
-          <Button size="sm" onClick={exportAsPDF} disabled={isGeneratingPDF || template.elements.length === 0}>
-            <FileDown className="w-4 h-4 mr-1" />
-            {isGeneratingPDF ? 'Generating...' : 'Export PDF'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Grid Size:</Label>
+            <Select 
+              value={String(gridSize)} 
+              onValueChange={(val) => {
+                // Update grid size in the store if available
+              }}
+            >
+              <SelectTrigger className="w-16 h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5px</SelectItem>
+                <SelectItem value="10">10px</SelectItem>
+                <SelectItem value="15">15px</SelectItem>
+                <SelectItem value="20">20px</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Element Toolbox */}
-        <div className="w-56 border-r bg-card overflow-hidden">
-          {renderToolbox()}
-        </div>
-
-        {/* Canvas Area */}
-        <div className="flex-1 overflow-auto bg-muted/30 p-4">
-          <div className="flex justify-center">
-            <div
-              ref={canvasRef}
-              id="pdf-preview"
-              onClick={handleCanvasClick}
-              onDrop={handleCanvasDrop}
-              onDragOver={handleCanvasDragOver}
-              className="relative bg-white shadow-lg"
-              style={{
-                width: canvasWidth * zoom,
-                height: canvasHeight * zoom,
-                transform: `scale(${zoom})`,
-                transformOrigin: 'top center',
-              }}
-            >
-              {/* Grid */}
-              {showGrid && (
-                <div 
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-                      linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-                    `,
-                    backgroundSize: `${gridSize}px ${gridSize}px`,
-                  }}
-                />
-              )}
-              
-              {/* Elements */}
-              {template.elements.map(element => renderElement(element))}
+      {/* Main Content - 3 Panel Layout with Resizable Dividers */}
+      <div className="flex-1 overflow-hidden">
+        <PanelGroup direction="horizontal" className="h-full">
+          {/* Left Panel - Element Toolbox */}
+          <Panel defaultSize={18} minSize={12} maxSize={30} className="bg-card border-r">
+            <div className="h-full overflow-hidden flex flex-col">
+              <div className="px-3 py-2 border-b bg-muted/30">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <Layers className="w-4 h-4" />
+                  Elements
+                </h3>
+              </div>
+              <div className="flex-1 overflow-auto">
+                {renderToolbox()}
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Right Sidebar - Properties & Data Form */}
-        <div className="w-80 border-l bg-card overflow-hidden flex flex-col">
-          <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 mx-4 mt-2">
-              <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
-              <TabsTrigger value="data" className="text-xs">Data Form</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="properties" className="flex-1 overflow-hidden m-0">
-              {renderPropertiesPanel()}
-            </TabsContent>
-            
-            <TabsContent value="data" className="flex-1 overflow-hidden m-0">
-              {renderDataFormPanel()}
-            </TabsContent>
-          </Tabs>
-        </div>
+          </Panel>
+          
+          {/* Resize Handle */}
+          <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors flex items-center justify-center group">
+            <GripVertical className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+          </PanelResizeHandle>
+          
+          {/* Center Panel - Canvas */}
+          <Panel defaultSize={52} minSize={30} className="bg-muted/30">
+            <div className="h-full overflow-auto p-4">
+              <div className="flex justify-center">
+                <div
+                  ref={canvasRef}
+                  id="pdf-preview"
+                  onClick={handleCanvasClick}
+                  onDrop={handleCanvasDrop}
+                  onDragOver={handleCanvasDragOver}
+                  className="relative bg-white shadow-lg"
+                  style={{
+                    width: canvasWidth * zoom,
+                    height: canvasHeight * zoom,
+                    transform: `scale(${zoom})`,
+                    transformOrigin: 'top center',
+                  }}
+                >
+                  {/* Grid */}
+                  {showGrid && (
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        backgroundImage: `
+                          linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+                          linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+                        `,
+                        backgroundSize: `${gridSize}px ${gridSize}px`,
+                      }}
+                    />
+                  )}
+                  
+                  {/* Elements */}
+                  {template.elements.map(element => renderElement(element))}
+                </div>
+              </div>
+            </div>
+          </Panel>
+          
+          {/* Resize Handle */}
+          <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors flex items-center justify-center group">
+            <GripVertical className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+          </PanelResizeHandle>
+          
+          {/* Right Panel - Properties & Data Form */}
+          <Panel defaultSize={30} minSize={20} maxSize={45} className="bg-card border-l">
+            <div className="h-full overflow-hidden flex flex-col">
+              <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col">
+                <TabsList className="grid w-full grid-cols-2 mx-4 mt-2">
+                  <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
+                  <TabsTrigger value="data" className="text-xs">Data Form</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="properties" className="flex-1 overflow-hidden m-0">
+                  {renderPropertiesPanel()}
+                </TabsContent>
+                
+                <TabsContent value="data" className="flex-1 overflow-hidden m-0">
+                  {renderDataFormPanel()}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </Panel>
+        </PanelGroup>
       </div>
 
       {/* Preview Dialog */}
