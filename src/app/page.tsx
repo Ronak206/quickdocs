@@ -22,7 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Icons
 import { 
@@ -133,6 +133,8 @@ export default function Dashboard() {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
+  const [isTestPlan, setIsTestPlan] = useState(false);
+  const [isActivatingTest, setIsActivatingTest] = useState(false);
 
   // Current document being created
   const [currentDoc, setCurrentDoc] = useState<any>({
@@ -179,7 +181,8 @@ export default function Dashboard() {
         setStats(statsData.stats);
         setUsage(statsData.usage);
         setPlan(statsData.plan);
-        setIsPro(statsData.plan?.name === 'PRO');
+        setIsPro(statsData.plan?.name === 'PRO' || statsData.plan?.name === 'TEST');
+        setIsTestPlan(statsData.plan?.name === 'TEST');
       }
 
       if (docsRes.ok) {
@@ -278,6 +281,30 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Payment status check error:', error);
       return false;
+    }
+  };
+
+  // Handle test plan activation
+  const handleActivateTestPlan = async () => {
+    setIsActivatingTest(true);
+    try {
+      const response = await fetch('/api/test-activate', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to activate test plan');
+      }
+
+      toast.success('Test plan activated! You now have unlimited PDF generation!');
+      fetchData();
+    } catch (error) {
+      console.error('Test plan activation error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to activate test plan');
+    } finally {
+      setIsActivatingTest(false);
     }
   };
 
@@ -1273,17 +1300,17 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {isPro && <Badge className="bg-green-500">PRO</Badge>}
+              {isPro && <Badge className={isTestPlan ? "bg-blue-500" : "bg-green-500"}>{isTestPlan ? "TEST" : "PRO"}</Badge>}
               Subscription
             </CardTitle>
             <CardDescription>Your current plan and usage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className={`flex items-center justify-between p-4 rounded-lg ${isPro ? 'bg-green-500/10 border border-green-500/20' : 'bg-primary/5'}`}>
+            <div className={`flex items-center justify-between p-4 rounded-lg ${isPro ? (isTestPlan ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-green-500/10 border border-green-500/20') : 'bg-primary/5'}`}>
               <div>
                 <div className="flex items-center gap-2">
                   <p className="font-medium">{plan.displayName} Plan</p>
-                  {isPro && <Check className="h-4 w-4 text-green-600" />}
+                  {isPro && <Check className={`h-4 w-4 ${isTestPlan ? 'text-blue-600' : 'text-green-600'}`} />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {isPro || usage.pdfLimit === -1 
@@ -1301,14 +1328,19 @@ export default function Dashboard() {
             </div>
             
             {!isPro ? (
-              <Button className="w-full" onClick={() => setShowPaymentModal(true)}>
-                <Wallet className="h-4 w-4 mr-2" />
-                Upgrade to Pro
-              </Button>
+              <div className="space-y-3">
+                <Button className="w-full" onClick={() => setShowPaymentModal(true)}>
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Upgrade to Pro
+                </Button>
+              </div>
             ) : (
               <div className="p-4 rounded-lg bg-muted/50 text-center">
                 <p className="text-sm text-muted-foreground">
-                  You have unlimited PDF generation with your Pro plan
+                  {isTestPlan 
+                    ? 'You have unlimited PDF generation with your Test plan (for demo purposes)'
+                    : 'You have unlimited PDF generation with your Pro plan'
+                  }
                 </p>
               </div>
             )}
@@ -1329,6 +1361,59 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Test Plan Card - Only show if not already on Pro or Test plan */}
+        {!isPro && (
+          <Card className="border-blue-500/30 bg-blue-500/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-600">
+                <Sparkles className="h-5 w-5" />
+                Test Plan (Demo)
+              </CardTitle>
+              <CardDescription>Try Pro features for free - no payment required</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-background border">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Activate the test plan to get unlimited PDF generation without paying. 
+                  This is for testing purposes only.
+                </p>
+                <ul className="text-sm space-y-1 mb-4">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-blue-500" />
+                    Unlimited PDF generation
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-blue-500" />
+                    All Pro features
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-blue-500" />
+                    Free - no payment needed
+                  </li>
+                </ul>
+                <Button 
+                  variant="outline" 
+                  className="w-full border-blue-500 text-blue-600 hover:bg-blue-500/10"
+                  onClick={handleActivateTestPlan}
+                  disabled={isActivatingTest}
+                >
+                  {isActivatingTest ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Activating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Activate Test Plan
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Payment Modal */}
@@ -1344,7 +1429,7 @@ export default function Dashboard() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="p-3 rounded-lg bg-muted">
                 <p className="text-muted-foreground">Free Plan</p>
@@ -1388,37 +1473,35 @@ export default function Dashboard() {
                 </Button>
               </div>
             )}
+            
+            <div className="space-y-2 pt-2">
+              <Button 
+                className="w-full" 
+                onClick={handleCreatePayment}
+                disabled={isCreatingPayment}
+              >
+                {isCreatingPayment ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating Payment...
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Pay 30 USDT
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={checkPaymentStatus}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Check Payment Status
+              </Button>
+            </div>
           </div>
-          
-          <DialogFooter className="flex-col gap-2">
-            <Button 
-              className="w-full" 
-              onClick={handleCreatePayment}
-              disabled={isCreatingPayment}
-            >
-              {isCreatingPayment ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating Payment...
-                </>
-              ) : (
-                <>
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Pay 30 USDT
-                </>
-              )}
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                checkPaymentStatus();
-              }}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Check Payment Status
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
