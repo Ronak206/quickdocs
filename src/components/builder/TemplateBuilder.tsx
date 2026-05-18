@@ -3339,8 +3339,8 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
                   </Button>
                 </div>
               </div>
-              {/* Canvas Area with Horizontal Scroll */}
-              <div ref={canvasScrollRef} className="flex-1 overflow-auto">
+              {/* Canvas Area */}
+              <div className="flex-1 overflow-auto">
                 <div className="p-8 flex justify-center min-w-max">
                   <div
                     ref={canvasRef}
