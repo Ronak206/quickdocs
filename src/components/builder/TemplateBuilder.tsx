@@ -143,6 +143,16 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [pageNumbersEnabled, setPageNumbersEnabled] = useState(false);
   const [pageNumberPosition, setPageNumberPosition] = useState<'bottom-center' | 'bottom-left' | 'bottom-right'>('bottom-center');
+  
+  // Document name editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(template.name);
+  
+  // Scroll position state for canvas and properties panel
+  const [canvasScrollX, setCanvasScrollX] = useState(0);
+  const [propertiesScrollY, setPropertiesScrollY] = useState(0);
+  const canvasScrollRef = useRef<HTMLDivElement>(null);
+  const propertiesScrollRef = useRef<HTMLDivElement>(null);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -2946,7 +2956,43 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
               </Button>
             )}
             <Separator orientation="vertical" className="h-6" />
-            <h2 className="font-semibold">{template.name}</h2>
+            {/* Editable Document Name */}
+            {isEditingName ? (
+              <Input
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={() => {
+                  if (editedName.trim()) {
+                    setTemplate({ ...template, name: editedName.trim() });
+                  }
+                  setIsEditingName(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (editedName.trim()) {
+                      setTemplate({ ...template, name: editedName.trim() });
+                    }
+                    setIsEditingName(false);
+                  } else if (e.key === 'Escape') {
+                    setEditedName(template.name);
+                    setIsEditingName(false);
+                  }
+                }}
+                className="font-semibold h-7 w-48"
+                autoFocus
+              />
+            ) : (
+              <h2 
+                className="font-semibold cursor-pointer hover:bg-muted/50 px-2 py-1 rounded" 
+                onClick={() => {
+                  setEditedName(template.name);
+                  setIsEditingName(true);
+                }}
+                title="Click to edit document name"
+              >
+                {template.name}
+              </h2>
+            )}
             <Badge variant="outline">{template.category}</Badge>
           </div>
           
@@ -3042,12 +3088,28 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
                             value={template.pageSize.name} 
                             onValueChange={(val) => {
                               const sizes: Record<string, { width: number; height: number; name: string }> = {
-                                'A4': { width: 210, height: 297, name: 'A4' },
+                                // A Series
+                                'A0': { width: 841, height: 1189, name: 'A0' },
+                                'A1': { width: 594, height: 841, name: 'A1' },
+                                'A2': { width: 420, height: 594, name: 'A2' },
                                 'A3': { width: 297, height: 420, name: 'A3' },
+                                'A4': { width: 210, height: 297, name: 'A4' },
                                 'A5': { width: 148, height: 210, name: 'A5' },
+                                'A6': { width: 105, height: 148, name: 'A6' },
+                                'A7': { width: 74, height: 105, name: 'A7' },
+                                // B Series
+                                'B4': { width: 250, height: 353, name: 'B4' },
+                                'B5': { width: 176, height: 250, name: 'B5' },
+                                // US Sizes
                                 'Letter': { width: 215.9, height: 279.4, name: 'Letter' },
                                 'Legal': { width: 215.9, height: 355.6, name: 'Legal' },
                                 'Tabloid': { width: 279.4, height: 431.8, name: 'Tabloid' },
+                                'Ledger': { width: 431.8, height: 279.4, name: 'Ledger' },
+                                'Executive': { width: 184.1, height: 266.7, name: 'Executive' },
+                                // Photo Sizes
+                                '4x6': { width: 101.6, height: 152.4, name: '4x6' },
+                                '5x7': { width: 127, height: 177.8, name: '5x7' },
+                                '8x10': { width: 203.2, height: 254, name: '8x10' },
                               };
                               const size = sizes[val] || sizes['A4'];
                               setTemplate({ ...template, pageSize: size });
@@ -3057,12 +3119,24 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="A4">A4</SelectItem>
-                              <SelectItem value="A3">A3</SelectItem>
-                              <SelectItem value="A5">A5</SelectItem>
-                              <SelectItem value="Letter">Letter</SelectItem>
-                              <SelectItem value="Legal">Legal</SelectItem>
-                              <SelectItem value="Tabloid">Tabloid</SelectItem>
+                              <SelectItem value="A4">A4 (210 × 297 mm)</SelectItem>
+                              <SelectItem value="A3">A3 (297 × 420 mm)</SelectItem>
+                              <SelectItem value="A5">A5 (148 × 210 mm)</SelectItem>
+                              <SelectItem value="A2">A2 (420 × 594 mm)</SelectItem>
+                              <SelectItem value="A1">A1 (594 × 841 mm)</SelectItem>
+                              <SelectItem value="A0">A0 (841 × 1189 mm)</SelectItem>
+                              <SelectItem value="A6">A6 (105 × 148 mm)</SelectItem>
+                              <SelectItem value="A7">A7 (74 × 105 mm)</SelectItem>
+                              <SelectItem value="B4">B4 (250 × 353 mm)</SelectItem>
+                              <SelectItem value="B5">B5 (176 × 250 mm)</SelectItem>
+                              <SelectItem value="Letter">Letter (8.5 × 11 in)</SelectItem>
+                              <SelectItem value="Legal">Legal (8.5 × 14 in)</SelectItem>
+                              <SelectItem value="Tabloid">Tabloid (11 × 17 in)</SelectItem>
+                              <SelectItem value="Ledger">Ledger (17 × 11 in)</SelectItem>
+                              <SelectItem value="Executive">Executive (7.25 × 10.5 in)</SelectItem>
+                              <SelectItem value="4x6">4 × 6 in</SelectItem>
+                              <SelectItem value="5x7">5 × 7 in</SelectItem>
+                              <SelectItem value="8x10">8 × 10 in</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -3256,22 +3330,42 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           {/* Center Panel - Canvas with Horizontal Scrollbar */}
           <Panel defaultSize={52} minSize={30} className="bg-muted/30">
             <div className="h-full flex flex-col">
-              {/* Canvas Toolbar with Zoom Slider */}
+              {/* Canvas Toolbar with Horizontal Scroll Slider */}
               <div className="px-4 py-2 border-b bg-background/80 backdrop-blur flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <ZoomOut className="w-4 h-4 text-muted-foreground" />
-                  <Slider
-                    value={[zoom * 100]}
-                    onValueChange={([val]) => setZoom(val / 100)}
-                    min={25}
-                    max={200}
-                    step={5}
-                    className="w-32"
-                  />
-                  <ZoomIn className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground w-12">{Math.round(zoom * 100)}%</span>
+                <div className="flex items-center gap-3">
+                  {/* Horizontal Scroll Slider for Canvas */}
+                  <Label className="text-xs text-muted-foreground">Position:</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">←</span>
+                    <Slider
+                      value={[canvasScrollX]}
+                      onValueChange={([val]) => {
+                        setCanvasScrollX(val);
+                        if (canvasScrollRef.current) {
+                          const scrollContainer = canvasScrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+                          if (scrollContainer) {
+                            const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+                            scrollContainer.scrollLeft = (val / 100) * maxScroll;
+                          }
+                        }
+                      }}
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="w-24"
+                    />
+                    <span className="text-xs">→</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Zoom: {Math.round(zoom * 100)}%</span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.max(0.25, zoom - 0.1))}>
+                    <ZoomOut className="w-3 h-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.min(2, zoom + 0.1))}>
+                    <ZoomIn className="w-3 h-3" />
+                  </Button>
+                  <Separator orientation="vertical" className="h-4 mx-1" />
                   <Button variant={showGrid ? 'secondary' : 'ghost'} size="sm" onClick={toggleGrid} className="h-7">
                     <Grid3X3 className="w-3 h-3 mr-1" />
                     Grid
@@ -3283,7 +3377,7 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
                 </div>
               </div>
               {/* Canvas Area with Horizontal Scroll */}
-              <ScrollArea className="flex-1">
+              <div ref={canvasScrollRef} className="flex-1 overflow-auto">
                 <div className="p-8 flex justify-center min-w-max">
                   <div
                     ref={canvasRef}
@@ -3317,7 +3411,7 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
                     {template.elements.map(element => renderElement(element))}
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           </Panel>
           
@@ -3328,27 +3422,52 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           
           {/* Right Panel - Properties & Data Form with Vertical Slider */}
           <Panel defaultSize={30} minSize={20} maxSize={45} className="bg-card border-l">
-            <PanelGroup direction="vertical" className="h-full">
-              {/* Properties/Data Tabs Header */}
-              <Panel defaultSize={100} minSize={30}>
-                <div className="h-full flex flex-col">
-                  <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col">
-                    <TabsList className="grid w-full grid-cols-2 mx-4 mt-2 shrink-0">
-                      <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
-                      <TabsTrigger value="data" className="text-xs">Data Form</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="properties" className="flex-1 overflow-hidden m-0 mt-2">
-                      {renderPropertiesPanel()}
-                    </TabsContent>
-                    
-                    <TabsContent value="data" className="flex-1 overflow-hidden m-0 mt-2">
-                      {renderDataFormPanel()}
-                    </TabsContent>
-                  </Tabs>
+            <div className="h-full flex flex-col">
+              {/* Vertical Scroll Slider Header */}
+              <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between shrink-0">
+                <Label className="text-xs text-muted-foreground">Scroll:</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">↑</span>
+                  <Slider
+                    value={[propertiesScrollY]}
+                    onValueChange={([val]) => {
+                      setPropertiesScrollY(val);
+                      if (propertiesScrollRef.current) {
+                        const scrollContainer = propertiesScrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+                        if (scrollContainer) {
+                          const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+                          scrollContainer.scrollTop = (val / 100) * maxScroll;
+                        }
+                      }
+                    }}
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="w-20"
+                  />
+                  <span className="text-xs">↓</span>
                 </div>
-              </Panel>
-            </PanelGroup>
+              </div>
+              
+              <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col">
+                <TabsList className="grid w-full grid-cols-2 mx-4 mt-2 shrink-0">
+                  <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
+                  <TabsTrigger value="data" className="text-xs">Data Form</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="properties" className="flex-1 overflow-hidden m-0 mt-2">
+                  <div ref={propertiesScrollRef} className="h-full overflow-auto">
+                    {renderPropertiesPanel()}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="data" className="flex-1 overflow-hidden m-0 mt-2">
+                  <div ref={propertiesScrollRef} className="h-full overflow-auto">
+                    {renderDataFormPanel()}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
           </Panel>
         </PanelGroup>
       </div>
