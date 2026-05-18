@@ -4,9 +4,11 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createInvoice, createPayment } from '@/lib/nowpayments';
 
-// Pro plan price (30 USDT)
-const PRO_PLAN_PRICE = 30;
-const PRO_PLAN_CURRENCY = 'USDT';
+// Plan prices
+const PLAN_PRICES = {
+  PRO: { price: 30, currency: 'USDT' },
+  TEST: { price: 0, currency: 'USDT' }, // Free test plan
+};
 
 // Webhook URL for NOWPayments
 const WEBHOOK_URL = process.env.NOWPAYMENTS_WEBHOOK_URL || 'https://quickdocs-smoky.vercel.app/api/webhooks/nowpayments';
@@ -23,17 +25,24 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = session.user.id;
-    const { pay_currency = 'usdttrc20' } = await req.json().catch(() => ({}));
+    const { pay_currency = 'usdttrc20', plan_type = 'PRO' } = await req.json().catch(() => ({}));
 
-    // Check if user already has Pro plan
+    // Validate plan type
+    if (!['PRO', 'TEST'].includes(plan_type)) {
+      return NextResponse.json({ error: 'Invalid plan type' }, { status: 400 });
+    }
+
+    const planPrice = PLAN_PRICES[plan_type as keyof typeof PLAN_PRICES];
+
+    // Check if user already has Pro or Test plan
     const existingSubscription = await prisma.subscription.findUnique({
       where: { userId },
       include: { plan: true },
     });
 
-    if (existingSubscription?.plan?.name === 'PRO') {
+    if (existingSubscription?.plan?.name === 'PRO' || existingSubscription?.plan?.name === 'TEST') {
       return NextResponse.json({ 
-        error: 'You already have a Pro plan',
+        error: `You already have a ${existingSubscription.plan.name} plan`,
         isPro: true 
       }, { status: 400 });
     }
@@ -56,24 +65,69 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate unique order ID
-    const orderId = `quickdocs-pro-${userId}-${Date.now()}`;
+    const orderId = `quickdocs-${plan_type.toLowerCase()}-${userId}-${Date.now()}`;
 
-    // Get the PRO plan from database
-    const proPlan = await prisma.plan.findUnique({
-      where: { name: 'PRO' },
+    // Get the plan from database
+    const plan = await prisma.plan.findUnique({
+      where: { name: plan_type },
     });
 
-    if (!proPlan) {
-      return NextResponse.json({ error: 'Pro plan not found' }, { status: 500 });
+    if (!plan) {
+      return NextResponse.json({ error: `${plan_type} plan not found` }, { status: 500 });
     }
 
-    // Create payment with NOWPayments
+    // For TEST plan with 0 price, skip NOWPayments and directly activate
+    if (planPrice.price === 0) {
+      // Create a mock payment record
+      const payment = await prisma.payment.create({
+        data: {
+          userId,
+          paymentId: `test-free-${Date.now()}`,
+          invoiceId: null,
+          orderId,
+          amount: 0,
+          payCurrency: 'USDT',
+          status: 'finished',
+          paidAt: new Date(),
+        },
+      });
+
+      // Create or update subscription
+      if (existingSubscription) {
+        await prisma.subscription.update({
+          where: { userId },
+          data: {
+            planId: plan.id,
+            status: 'active',
+            startDate: new Date(),
+            endDate: null,
+          },
+        });
+      } else {
+        await prisma.subscription.create({
+          data: {
+            userId,
+            planId: plan.id,
+            status: 'active',
+          },
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        payment,
+        isFree: true,
+        message: 'Test plan activated successfully!',
+      });
+    }
+
+    // Create payment with NOWPayments for paid plans
     const paymentData = {
-      price_amount: PRO_PLAN_PRICE,
+      price_amount: planPrice.price,
       price_currency: 'usd',
       pay_currency: pay_currency,
       order_id: orderId,
-      order_description: `QuickDocs Pro Plan - ${session.user.email}`,
+      order_description: `QuickDocs ${plan_type} Plan - ${session.user.email}`,
       ipn_callback_url: WEBHOOK_URL,
       success_url: `${process.env.NEXTAUTH_URL || 'https://quickdocs-smoky.vercel.app'}/?payment=success`,
       cancel_url: `${process.env.NEXTAUTH_URL || 'https://quickdocs-smoky.vercel.app'}/?payment=cancelled`,
@@ -105,7 +159,7 @@ export async function POST(req: NextRequest) {
         paymentId: nowpaymentsResponse.id || nowpaymentsResponse.payment_id || `pay-${Date.now()}`,
         invoiceId: nowpaymentsResponse.invoice_url ? nowpaymentsResponse.id : null,
         orderId,
-        amount: PRO_PLAN_PRICE,
+        amount: planPrice.price,
         payCurrency: pay_currency,
         status: 'pending',
       },
@@ -156,7 +210,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       payment,
       subscription,
-      isPro: subscription?.plan?.name === 'PRO',
+      isPro: subscription?.plan?.name === 'PRO' || subscription?.plan?.name === 'TEST',
+      planName: subscription?.plan?.name,
     });
   } catch (error) {
     console.error('Payment fetch error:', error);

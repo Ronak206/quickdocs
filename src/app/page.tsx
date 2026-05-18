@@ -135,7 +135,6 @@ export default function Dashboard() {
   const [paymentData, setPaymentData] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
   const [isTestPlan, setIsTestPlan] = useState(false);
-  const [isActivatingTest, setIsActivatingTest] = useState(false);
 
   // Current document being created
   const [currentDoc, setCurrentDoc] = useState<any>({
@@ -214,14 +213,14 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Handle create payment for Pro plan
-  const handleCreatePayment = async () => {
+  // Handle create payment for Pro/Test plan
+  const handleCreatePayment = async (planType: 'PRO' | 'TEST' = 'PRO') => {
     setIsCreatingPayment(true);
     try {
       const response = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pay_currency: 'usdttrc20' }),
+        body: JSON.stringify({ pay_currency: 'usdttrc20', plan_type: planType }),
       });
 
       const data = await response.json();
@@ -230,6 +229,7 @@ export default function Dashboard() {
         if (data.isPro) {
           toast.success('You already have a Pro plan!');
           setShowPaymentModal(false);
+          setShowTestPlanModal(false);
           fetchData();
           return;
         }
@@ -238,10 +238,18 @@ export default function Dashboard() {
 
       setPaymentData(data.payment);
       
+      // For free plan (TEST with 0 price)
+      if (data.isFree) {
+        toast.success('Test plan activated! You now have unlimited PDF generation!');
+        setShowTestPlanModal(false);
+        fetchData();
+        return;
+      }
+      
       // If there's an invoice URL, open it
       if (data.invoice_url) {
         window.open(data.invoice_url, '_blank');
-        toast.success('Payment page opened! Complete your payment to upgrade to Pro.');
+        toast.success('Payment page opened! Complete your payment to upgrade.');
       } else {
         toast.success('Payment created! Send crypto to the address provided.');
       }
@@ -253,6 +261,27 @@ export default function Dashboard() {
       toast.error(error instanceof Error ? error.message : 'Failed to create payment');
     } finally {
       setIsCreatingPayment(false);
+    }
+  };
+
+  // Handle cancel plan
+  const handleCancelPlan = async () => {
+    try {
+      const response = await fetch('/api/cancel-plan', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to cancel plan');
+      }
+
+      toast.success('Plan canceled. You are now on the Free plan.');
+      fetchData();
+    } catch (error) {
+      console.error('Cancel plan error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel plan');
     }
   };
 
@@ -282,31 +311,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Payment status check error:', error);
       return false;
-    }
-  };
-
-  // Handle test plan activation
-  const handleActivateTestPlan = async () => {
-    setIsActivatingTest(true);
-    try {
-      const response = await fetch('/api/test-activate', {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to activate test plan');
-      }
-
-      toast.success('Test plan activated! You now have unlimited PDF generation!');
-      setShowTestPlanModal(false);
-      fetchData();
-    } catch (error) {
-      console.error('Test plan activation error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to activate test plan');
-    } finally {
-      setIsActivatingTest(false);
     }
   };
 
@@ -1337,13 +1341,22 @@ export default function Dashboard() {
                 </Button>
               </div>
             ) : (
-              <div className="p-4 rounded-lg bg-muted/50 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {isTestPlan 
-                    ? 'You have unlimited PDF generation with your Test plan (for demo purposes)'
-                    : 'You have unlimited PDF generation with your Pro plan'
-                  }
-                </p>
+              <div className="space-y-3">
+                <div className="p-4 rounded-lg bg-muted/50 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {isTestPlan 
+                      ? 'You have unlimited PDF generation with your Test plan (for demo purposes)'
+                      : 'You have unlimited PDF generation with your Pro plan'
+                    }
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full text-destructive border-destructive/50 hover:bg-destructive/10"
+                  onClick={handleCancelPlan}
+                >
+                  Cancel Plan
+                </Button>
               </div>
             )}
             
@@ -1453,10 +1466,10 @@ export default function Dashboard() {
             <div className="space-y-2 pt-2">
               <Button 
                 className="w-full bg-blue-500 hover:bg-blue-600" 
-                onClick={handleActivateTestPlan}
-                disabled={isActivatingTest}
+                onClick={() => handleCreatePayment('TEST')}
+                disabled={isCreatingPayment}
               >
-                {isActivatingTest ? (
+                {isCreatingPayment ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Activating...
@@ -1541,7 +1554,7 @@ export default function Dashboard() {
             <div className="space-y-2 pt-2">
               <Button 
                 className="w-full" 
-                onClick={handleCreatePayment}
+                onClick={() => handleCreatePayment('PRO')}
                 disabled={isCreatingPayment}
               >
                 {isCreatingPayment ? (
