@@ -1625,7 +1625,7 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
       >
         {elementContent()}
         
-        {/* Resize handles with icons */}
+        {/* Resize handles with icons - dynamic based on element size */}
         {isSelected && !forPreview && (
           <>
             {/* Corner handles - NW */}
@@ -1664,28 +1664,165 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <path d="M1 7L7 1M7 7V2M7 7H2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            {/* Edge handle - N (top) */}
-            <div 
-              onMouseDown={(e) => handleResizeStart(e, 'n')} 
-              className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
-            >
-              <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
-            </div>
-            {/* Edge handle - S (bottom) */}
-            <div 
-              onMouseDown={(e) => handleResizeStart(e, 's')} 
-              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
-            >
-              <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
-            </div>
-            {/* Edge handle - W (left) */}
+            
+            {/* Dynamic top edge handles - more handles as width increases */}
+            {size.width < 150 ? (
+              /* 1 handle for small width */
+              <div 
+                onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+              >
+                <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+              </div>
+            ) : size.width < 300 ? (
+              /* 2 handles for medium width */
+              <>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-1/4 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-3/4 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+              </>
+            ) : size.width < 450 ? (
+              /* 3 handles for larger width */
+              <>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-[16.66%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-[83.33%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+              </>
+            ) : (
+              /* 4 handles for very wide elements */
+              <>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-[12.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-[37.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-[62.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 'n')} 
+                  className="absolute -top-2 left-[87.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+              </>
+            )}
+            
+            {/* Dynamic bottom edge handles - more handles as width increases */}
+            {size.width < 150 ? (
+              <div 
+                onMouseDown={(e) => handleResizeStart(e, 's')} 
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+              >
+                <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+              </div>
+            ) : size.width < 300 ? (
+              <>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-1/4 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-3/4 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+              </>
+            ) : size.width < 450 ? (
+              <>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-[16.66%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-[83.33%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-[12.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-[37.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-[62.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+                <div 
+                  onMouseDown={(e) => handleResizeStart(e, 's')} 
+                  className="absolute -bottom-2 left-[87.5%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+                >
+                  <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+                </div>
+              </>
+            )}
+            
+            {/* Left edge handle */}
             <div 
               onMouseDown={(e) => handleResizeStart(e, 'w')} 
               className="absolute top-1/2 -translate-y-1/2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-w-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
             >
               <ArrowLeft className="w-2.5 h-2.5 text-blue-500" />
             </div>
-            {/* Edge handle - E (right) */}
+            {/* Right edge handle */}
             <div 
               onMouseDown={(e) => handleResizeStart(e, 'e')} 
               className="absolute top-1/2 -translate-y-1/2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-e-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
