@@ -33,7 +33,7 @@ import {
   CheckSquare, ToggleRight, Circle, ChevronDown, List, Star, Sliders, GitBranch, Upload, Palette, PenTool,
   Image as ImageIcon, Building2, QrCode, Barcode, Droplet, Video, Music,
   Minus, Square, ArrowRight, Triangle, Hexagon, Plus, MinusCircle,
-  ZoomIn, ZoomOut, Grid3X3, Undo2, Redo2, Download, Save,
+  ZoomIn, ZoomOut, Grid3X3, Download, Save,
   Trash2, Copy, Move, RotateCcw, Lock as LockIcon, Unlock, Eye, Settings, EyeOff,
   FileText, X, ArrowLeft, Printer, FileDown, ChevronRight, ChevronUp, Table,
   Award, MessageSquare, Columns, Box, BarChart, Gauge, Layers, Sparkles,
@@ -147,12 +147,6 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
   // Document name editing state
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
-  
-  // Scroll position state for canvas and properties panel
-  const [canvasScrollX, setCanvasScrollX] = useState(0);
-  const [propertiesScrollY, setPropertiesScrollY] = useState(0);
-  const canvasScrollRef = useRef<HTMLDivElement>(null);
-  const propertiesScrollRef = useRef<HTMLDivElement>(null);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -3066,18 +3060,7 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
                         <Switch checked={showRulers} onCheckedChange={setShowRulers} />
                       </div>
                       
-                      {/* History */}
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs">History</Label>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={undo}>
-                            <Undo2 className="w-3 h-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={redo}>
-                            <Redo2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
+
                     </div>
                     
                     <Separator />
@@ -3335,33 +3318,8 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           {/* Center Panel - Canvas with Horizontal Scrollbar */}
           <Panel defaultSize={52} minSize={30} className="bg-muted/30">
             <div className="h-full flex flex-col">
-              {/* Canvas Toolbar with Horizontal Scroll Slider */}
-              <div className="px-4 py-2 border-b bg-background/80 backdrop-blur flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                  {/* Horizontal Scroll Slider for Canvas */}
-                  <Label className="text-xs text-muted-foreground">Position:</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">←</span>
-                    <Slider
-                      value={[canvasScrollX]}
-                      onValueChange={([val]) => {
-                        setCanvasScrollX(val);
-                        if (canvasScrollRef.current) {
-                          const scrollContainer = canvasScrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-                          if (scrollContainer) {
-                            const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-                            scrollContainer.scrollLeft = (val / 100) * maxScroll;
-                          }
-                        }
-                      }}
-                      min={0}
-                      max={100}
-                      step={1}
-                      className="w-24"
-                    />
-                    <span className="text-xs">→</span>
-                  </div>
-                </div>
+              {/* Canvas Toolbar */}
+              <div className="px-4 py-2 border-b bg-background/80 backdrop-blur flex items-center justify-end shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Zoom: {Math.round(zoom * 100)}%</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.max(0.25, zoom - 0.1))}>
@@ -3428,48 +3386,25 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
           {/* Right Panel - Properties & Data Form with Vertical Slider */}
           <Panel defaultSize={30} minSize={20} maxSize={45} className="bg-card border-l">
             <div className="h-full flex flex-col">
-              {/* Vertical Scroll Slider Header */}
-              <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between shrink-0">
-                <Label className="text-xs text-muted-foreground">Scroll:</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs">↑</span>
-                  <Slider
-                    value={[propertiesScrollY]}
-                    onValueChange={([val]) => {
-                      setPropertiesScrollY(val);
-                      if (propertiesScrollRef.current) {
-                        const scrollContainer = propertiesScrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-                        if (scrollContainer) {
-                          const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
-                          scrollContainer.scrollTop = (val / 100) * maxScroll;
-                        }
-                      }
-                    }}
-                    min={0}
-                    max={100}
-                    step={1}
-                    className="w-20"
-                  />
-                  <span className="text-xs">↓</span>
-                </div>
-              </div>
-              
-              <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col">
-                <TabsList className="grid w-full grid-cols-2 mx-4 mt-2 shrink-0">
+              {/* Properties & Data Header */}
+              <div className="px-4 py-2 border-b bg-muted/30 shrink-0">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
                   <TabsTrigger value="data" className="text-xs">Data Form</TabsTrigger>
                 </TabsList>
-                
+              </div>
+              
+              <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col">
                 <TabsContent value="properties" className="flex-1 overflow-hidden m-0 mt-2">
-                  <div ref={propertiesScrollRef} className="h-full overflow-auto">
+                  <ScrollArea className="h-full">
                     {renderPropertiesPanel()}
-                  </div>
+                  </ScrollArea>
                 </TabsContent>
                 
                 <TabsContent value="data" className="flex-1 overflow-hidden m-0 mt-2">
-                  <div ref={propertiesScrollRef} className="h-full overflow-auto">
+                  <ScrollArea className="h-full">
                     {renderDataFormPanel()}
-                  </div>
+                  </ScrollArea>
                 </TabsContent>
               </Tabs>
             </div>
