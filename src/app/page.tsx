@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 // Icons
 import { 
@@ -30,7 +31,7 @@ import {
   FileSpreadsheet, CreditCard, FileCheck, Clock, TrendingUp,
   Layout, Globe, Menu, X, ChevronRight, FolderOpen,
   FilePlus2, Palette, Sparkles, Printer, LogOut, Loader2, Settings,
-  ZoomIn, ZoomOut, Save, RotateCcw, Zap, RefreshCw
+  ZoomIn, ZoomOut, Save, RotateCcw, Zap, RefreshCw, Check, ExternalLink, Wallet
 } from 'lucide-react';
 
 // Types
@@ -126,6 +127,12 @@ export default function Dashboard() {
   // Downloads history state
   const [downloadHistory, setDownloadHistory] = useState<{ id: string; title: string; fileSize: number; createdAt: string }[]>([]);
   const [redownloadingId, setRedownloadingId] = useState<string | null>(null);
+  
+  // Payment state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [paymentData, setPaymentData] = useState<any>(null);
+  const [isPro, setIsPro] = useState(false);
 
   // Current document being created
   const [currentDoc, setCurrentDoc] = useState<any>({
@@ -159,11 +166,12 @@ export default function Dashboard() {
   // Fetch data from API
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, docsRes, templatesRes, downloadsRes] = await Promise.all([
+      const [statsRes, docsRes, templatesRes, downloadsRes, paymentRes] = await Promise.all([
         fetch('/api/stats'),
         fetch('/api/documents?limit=10'),
         fetch('/api/templates'),
         fetch('/api/downloads'),
+        fetch('/api/payments'),
       ]);
 
       if (statsRes.ok) {
@@ -171,6 +179,7 @@ export default function Dashboard() {
         setStats(statsData.stats);
         setUsage(statsData.usage);
         setPlan(statsData.plan);
+        setIsPro(statsData.plan?.name === 'PRO');
       }
 
       if (docsRes.ok) {
@@ -187,12 +196,90 @@ export default function Dashboard() {
         const downloadsData = await downloadsRes.json();
         setDownloadHistory(downloadsData.downloads ?? []);
       }
+      
+      if (paymentRes.ok) {
+        const paymentDataRes = await paymentRes.json();
+        if (paymentDataRes.payment) {
+          setPaymentData(paymentDataRes.payment);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  // Handle create payment for Pro plan
+  const handleCreatePayment = async () => {
+    setIsCreatingPayment(true);
+    try {
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pay_currency: 'usdttrc20' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.isPro) {
+          toast.success('You already have a Pro plan!');
+          setShowPaymentModal(false);
+          fetchData();
+          return;
+        }
+        throw new Error(data.error || 'Failed to create payment');
+      }
+
+      setPaymentData(data.payment);
+      
+      // If there's an invoice URL, open it
+      if (data.invoice_url) {
+        window.open(data.invoice_url, '_blank');
+        toast.success('Payment page opened! Complete your payment to upgrade to Pro.');
+      } else {
+        toast.success('Payment created! Send crypto to the address provided.');
+      }
+      
+      // Refresh data to check for updates
+      setTimeout(() => fetchData(), 5000);
+    } catch (error) {
+      console.error('Payment creation error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create payment');
+    } finally {
+      setIsCreatingPayment(false);
+    }
+  };
+
+  // Check payment status
+  const checkPaymentStatus = async () => {
+    try {
+      const response = await fetch('/api/payments');
+      const data = await response.json();
+      
+      if (data.isPro) {
+        toast.success('Payment confirmed! You are now a Pro user!');
+        setShowPaymentModal(false);
+        fetchData();
+        return true;
+      }
+      
+      if (data.payment) {
+        setPaymentData(data.payment);
+        if (data.payment.status === 'finished') {
+          toast.success('Payment confirmed! Upgrading your account...');
+          fetchData();
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Payment status check error:', error);
+      return false;
+    }
+  };
 
   // Handle redownload
   const handleRedownload = async (id: string, title: string) => {
@@ -549,9 +636,13 @@ export default function Dashboard() {
             <div className="mb-2">
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-muted-foreground">PDFs this month</span>
-                <span>{usage.pdfsUsed}/{usage.pdfLimit === -1 ? '∞' : usage.pdfLimit}</span>
+                {isPro || usage.pdfLimit === -1 ? (
+                  <span className="text-green-600 font-medium">{usage.pdfsUsed} generated</span>
+                ) : (
+                  <span>{usage.pdfsUsed}/{usage.pdfLimit}</span>
+                )}
               </div>
-              {usage.pdfLimit > 0 && (
+              {!isPro && usage.pdfLimit > 0 && (
                 <Progress value={(usage.pdfsUsed / usage.pdfLimit) * 100} className="h-1.5" />
               )}
             </div>
@@ -1181,25 +1272,155 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Subscription</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {isPro && <Badge className="bg-green-500">PRO</Badge>}
+              Subscription
+            </CardTitle>
             <CardDescription>Your current plan and usage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5">
+            <div className={`flex items-center justify-between p-4 rounded-lg ${isPro ? 'bg-green-500/10 border border-green-500/20' : 'bg-primary/5'}`}>
               <div>
-                <p className="font-medium">{plan.displayName} Plan</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">{plan.displayName} Plan</p>
+                  {isPro && <Check className="h-4 w-4 text-green-600" />}
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  {usage.pdfLimit === -1 ? 'Unlimited' : usage.pdfLimit} PDFs per month
+                  {isPro || usage.pdfLimit === -1 
+                    ? `${usage.pdfsUsed} PDFs generated` 
+                    : `${usage.pdfLimit} PDFs per month`
+                  }
                 </p>
               </div>
-              {plan.price > 0 && (
-                <span className="text-2xl font-bold">${plan.price}<span className="text-sm font-normal">/mo</span></span>
+              {!isPro && (
+                <div className="text-right">
+                  <span className="text-2xl font-bold">30<span className="text-sm font-normal"> USDT</span></span>
+                  <p className="text-xs text-muted-foreground">one-time payment</p>
+                </div>
               )}
             </div>
-            <Button className="w-full">Upgrade Plan</Button>
+            
+            {!isPro ? (
+              <Button className="w-full" onClick={() => setShowPaymentModal(true)}>
+                <Wallet className="h-4 w-4 mr-2" />
+                Upgrade to Pro
+              </Button>
+            ) : (
+              <div className="p-4 rounded-lg bg-muted/50 text-center">
+                <p className="text-sm text-muted-foreground">
+                  You have unlimited PDF generation with your Pro plan
+                </p>
+              </div>
+            )}
+            
+            {paymentData && paymentData.status !== 'finished' && !isPro && (
+              <div className="p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Pending Payment</p>
+                    <p className="text-xs text-muted-foreground">Status: {paymentData.status}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={checkPaymentStatus}>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Check Status
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              Upgrade to Pro Plan
+            </DialogTitle>
+            <DialogDescription>
+              Pay 30 USDT once for unlimited PDF generation
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="text-muted-foreground">Free Plan</p>
+                <p className="font-bold">10 PDFs/month</p>
+              </div>
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-green-600">Pro Plan</p>
+                <p className="font-bold text-green-600">Unlimited PDFs</p>
+              </div>
+            </div>
+            
+            <div className="p-4 rounded-lg bg-muted/50">
+              <p className="text-sm font-medium mb-2">Pro Plan Features:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-500" />
+                  Unlimited PDF generation
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-500" />
+                  Priority support
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-500" />
+                  All future updates
+                </li>
+              </ul>
+            </div>
+            
+            {paymentData?.invoice_url && (
+              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-sm mb-2">Payment page opened in new tab</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => window.open(paymentData.invoice_url, '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Open Payment Page
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex-col gap-2">
+            <Button 
+              className="w-full" 
+              onClick={handleCreatePayment}
+              disabled={isCreatingPayment}
+            >
+              {isCreatingPayment ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Payment...
+                </>
+              ) : (
+                <>
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Pay 30 USDT
+                </>
+              )}
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => {
+                checkPaymentStatus();
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Check Payment Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 

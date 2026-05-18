@@ -90,6 +90,7 @@ model User {
   activities    Activity[]
   usage         Usage[]
   downloads     Download[]
+  payments      Payment[]
 }
 
 model Account {
@@ -424,4 +425,55 @@ enum ActivityType {
   USER_REGISTER
   PLAN_UPGRADED
   PLAN_DOWNGRADED
+}
+
+// ============================================
+// Payments (NOWPayments Integration)
+// ============================================
+
+model Payment {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String        @db.ObjectId
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // NOWPayments data
+  paymentId       String        @unique  // NOWPayments payment ID
+  invoiceId       String?       // NOWPayments invoice ID if using invoices
+  
+  // Payment details
+  orderId         String        // Internal order ID
+  amount          Float         // Amount in USD
+  payCurrency     String?       // Cryptocurrency used for payment
+  payAmount       Float?        // Amount in cryptocurrency
+  
+  // Status tracking
+  status          PaymentStatus @default(pending)
+  paymentAddress  String?       // Crypto deposit address
+  
+  // Webhook data
+  actuallyPaid    Float?        // Actually paid amount
+  webhookData     String?       // JSON of last webhook payload
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  paidAt          DateTime?     // When payment was confirmed
+  
+  @@index([userId])
+  @@index([paymentId])
+  @@index([orderId])
+}
+
+enum PaymentStatus {
+  pending
+  waiting
+  confirming
+  confirmed
+  sending
+  partially_paid
+  finished
+  failed
+  expired
+  refunded
+  cancelled
 }
