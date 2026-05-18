@@ -3383,18 +3383,17 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
             <GripVertical className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
           </PanelResizeHandle>
           
-          {/* Right Panel - Properties & Data Form with Vertical Slider */}
+          {/* Right Panel - Properties & Data Form */}
           <Panel defaultSize={30} minSize={20} maxSize={45} className="bg-card border-l">
             <div className="h-full flex flex-col">
-              {/* Properties & Data Header */}
-              <div className="px-4 py-2 border-b bg-muted/30 shrink-0">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
-                  <TabsTrigger value="data" className="text-xs">Data Form</TabsTrigger>
-                </TabsList>
-              </div>
-              
               <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col">
+                <div className="px-4 py-2 border-b bg-muted/30 shrink-0">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
+                    <TabsTrigger value="data" className="text-xs">Data Form</TabsTrigger>
+                  </TabsList>
+                </div>
+                
                 <TabsContent value="properties" className="flex-1 overflow-hidden m-0 mt-2">
                   <ScrollArea className="h-full">
                     {renderPropertiesPanel()}
