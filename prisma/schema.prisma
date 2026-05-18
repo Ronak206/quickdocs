@@ -458,10 +458,6 @@ model Payment {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   paidAt          DateTime?     // When payment was confirmed
-  
-  @@index([userId])
-  @@index([paymentId])
-  @@index([orderId])
 }
 
 enum PaymentStatus {
