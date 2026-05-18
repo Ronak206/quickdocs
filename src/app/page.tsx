@@ -30,7 +30,7 @@ import {
   FileSpreadsheet, CreditCard, FileCheck, Clock, TrendingUp,
   Layout, Globe, Menu, X, ChevronRight, FolderOpen,
   FilePlus2, Palette, Sparkles, Printer, LogOut, Loader2, Settings,
-  ZoomIn, ZoomOut, Save, RotateCcw, Zap
+  ZoomIn, ZoomOut, Save, RotateCcw, Zap, RefreshCw
 } from 'lucide-react';
 
 // Types
@@ -122,6 +122,10 @@ export default function Dashboard() {
   const [plan, setPlan] = useState<PlanInfo>({ name: 'FREE', displayName: 'Free', price: 0, currency: 'USD' });
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  
+  // Downloads history state
+  const [downloadHistory, setDownloadHistory] = useState<{ id: string; title: string; fileSize: number; createdAt: string }[]>([]);
+  const [redownloadingId, setRedownloadingId] = useState<string | null>(null);
 
   // Current document being created
   const [currentDoc, setCurrentDoc] = useState<any>({
@@ -155,10 +159,11 @@ export default function Dashboard() {
   // Fetch data from API
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, docsRes, templatesRes] = await Promise.all([
+      const [statsRes, docsRes, templatesRes, downloadsRes] = await Promise.all([
         fetch('/api/stats'),
         fetch('/api/documents?limit=10'),
         fetch('/api/templates'),
+        fetch('/api/downloads'),
       ]);
 
       if (statsRes.ok) {
@@ -177,12 +182,51 @@ export default function Dashboard() {
         const templatesData = await templatesRes.json();
         setTemplates(templatesData.templates ?? []);
       }
+
+      if (downloadsRes.ok) {
+        const downloadsData = await downloadsRes.json();
+        setDownloadHistory(downloadsData.downloads ?? []);
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  // Handle redownload
+  const handleRedownload = async (id: string, title: string) => {
+    setRedownloadingId(id);
+    try {
+      const res = await fetch(`/api/downloads/${id}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch PDF');
+      }
+      const { pdfData } = await res.json();
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = pdfData;
+      link.download = `${title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Re-download error:', error);
+      toast.error('Failed to download PDF');
+    } finally {
+      setRedownloadingId(null);
+    }
+  };
+
+  // Format file size
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -1045,43 +1089,57 @@ export default function Dashboard() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Document History</h1>
-          <p className="text-muted-foreground">View your generated documents</p>
+          <h1 className="text-3xl font-bold">Download History</h1>
+          <p className="text-muted-foreground">View and re-download your generated PDFs</p>
         </div>
-        <Button onClick={() => setCurrentView('create')}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Document
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button onClick={() => setCurrentView('builder')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create PDF
+          </Button>
+        </div>
       </div>
 
       <Card>
         <CardContent className="pt-6">
-          {documents.length === 0 ? (
+          {downloadHistory.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No documents yet</p>
-              <p className="text-sm">Create your first document to see it here</p>
+              <Download className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="font-medium">No downloads yet</p>
+              <p className="text-sm">Generate PDFs in the template builder to see them here</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50">
+              {downloadHistory.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50">
                   <div className="flex items-center gap-4">
                     <div className="p-3 rounded-lg bg-primary/10">
-                      <FileText className="h-5 w-5" />
+                      <FileText className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">{doc.title}</p>
-                      <p className="text-sm text-muted-foreground">{doc.type.replace(/_/g, ' ')}</p>
+                      <p className="font-medium">{item.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatSize(item.fileSize)} · {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString()}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={doc.status === 'approved' ? 'default' : 'outline'}>{doc.status}</Badge>
-                    <span className="text-sm text-muted-foreground">{new Date(doc.createdAt).toLocaleDateString()}</span>
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleRedownload(item.id, item.title)}
+                    disabled={redownloadingId === item.id}
+                  >
+                    {redownloadingId === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-1" />
+                    )}
+                    {redownloadingId === item.id ? 'Downloading...' : 'Download'}
+                  </Button>
                 </div>
               ))}
             </div>

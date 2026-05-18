@@ -114,6 +114,9 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
+  // Save template state
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  
   // Collapsible sections state for properties panel
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     position: true,
@@ -2789,6 +2792,46 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
       reader.readAsDataURL(blob);
     });
 
+  // Save template to database
+  const saveTemplateToDatabase = async () => {
+    setIsSavingTemplate(true);
+    try {
+      const templateData = {
+        name: template.name,
+        description: template.description || '',
+        category: template.category,
+        type: 'CUSTOM' as const,
+        schema: {},
+        layout: {
+          pageSize: template.pageSize,
+          orientation: template.orientation,
+          margins: template.margins,
+          elements: template.elements,
+        },
+      };
+
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(templateData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to save template');
+        return;
+      }
+
+      const data = await response.json();
+      toast.success('Template saved successfully!');
+    } catch (error) {
+      console.error('Save template error:', error);
+      toast.error('Failed to save template');
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
   // Export PDF using @react-pdf/renderer for vector PDF generation
   const exportAsPDF = async () => {
     setIsGeneratingPDF(true);
@@ -3270,6 +3313,12 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
             </Popover>
             
             <Separator orientation="vertical" className="h-6 mx-2" />
+            
+            {/* Save Template */}
+            <Button variant="default" size="sm" onClick={saveTemplateToDatabase} disabled={isSavingTemplate}>
+              <Save className="w-4 h-4 mr-1" />
+              {isSavingTemplate ? 'Saving...' : 'Save Template'}
+            </Button>
             
             {/* Export */}
             <Button variant="outline" size="sm" onClick={openPDFPreview} disabled={template.elements.length === 0}>
