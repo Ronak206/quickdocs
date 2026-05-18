@@ -87,6 +87,7 @@ const ELEMENT_CATEGORIES = [
 
 interface TemplateBuilderProps {
   onBack?: () => void;
+  onTemplateSaved?: () => void;
   initialTemplate?: {
     id: string;
     name: string;
@@ -96,7 +97,7 @@ interface TemplateBuilderProps {
   } | null;
 }
 
-export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBuilderProps) {
+export default function TemplateBuilder({ onBack, onTemplateSaved, initialTemplate }: TemplateBuilderProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const previewCanvasRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -2824,6 +2825,11 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
 
       const data = await response.json();
       toast.success('Template saved successfully!');
+      
+      // Notify parent to refresh templates list
+      if (onTemplateSaved) {
+        onTemplateSaved();
+      }
     } catch (error) {
       console.error('Save template error:', error);
       toast.error('Failed to save template');

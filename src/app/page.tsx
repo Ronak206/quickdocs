@@ -772,7 +772,7 @@ export default function Dashboard() {
             </TabsList>
 
             <TabsContent value="document" className="p-4 space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label>Document Type</Label>
                 <Select value={currentDoc.type} onValueChange={(val) => setCurrentDoc({ ...currentDoc, type: val })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -787,17 +787,17 @@ export default function Dashboard() {
                 </Select>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>Title *</Label>
                 <Input placeholder="Document title" value={currentDoc.title} onChange={(e) => setCurrentDoc({ ...currentDoc, title: e.target.value })} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="space-y-2">
                   <Label>Document Number</Label>
                   <Input placeholder="INV-001" value={currentDoc.documentNumber} onChange={(e) => setCurrentDoc({ ...currentDoc, documentNumber: e.target.value })} />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Currency</Label>
                   <Select value={currentDoc.currency} onValueChange={(val) => setCurrentDoc({ ...currentDoc, currency: val })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -812,46 +812,46 @@ export default function Dashboard() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="space-y-2">
                   <Label>Date</Label>
                   <Input type="date" value={currentDoc.date} onChange={(e) => setCurrentDoc({ ...currentDoc, date: e.target.value })} />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Due Date</Label>
                   <Input type="date" value={currentDoc.dueDate} onChange={(e) => setCurrentDoc({ ...currentDoc, dueDate: e.target.value })} />
                 </div>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>Tax Rate (%)</Label>
                 <Input type="number" value={currentDoc.taxRate} onChange={(e) => setCurrentDoc({ ...currentDoc, taxRate: parseFloat(e.target.value) || 0 })} />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>Notes</Label>
                 <Textarea placeholder="Additional notes..." value={currentDoc.notes} onChange={(e) => setCurrentDoc({ ...currentDoc, notes: e.target.value })} />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>Terms & Conditions</Label>
                 <Textarea placeholder="Payment terms..." value={currentDoc.terms} onChange={(e) => setCurrentDoc({ ...currentDoc, terms: e.target.value })} />
               </div>
             </TabsContent>
 
             <TabsContent value="client" className="p-4 space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label>Client Name</Label>
                 <Input placeholder="Client name" value={currentDoc.client.name} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, name: e.target.value } })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Email</Label>
                 <Input placeholder="client@email.com" value={currentDoc.client.email} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, email: e.target.value } })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Phone</Label>
                 <Input placeholder="+1 555-123-4567" value={currentDoc.client.phone} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, phone: e.target.value } })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Address</Label>
                 <Textarea placeholder="Client address" value={currentDoc.client.address} onChange={(e) => setCurrentDoc({ ...currentDoc, client: { ...currentDoc.client, address: e.target.value } })} />
               </div>
@@ -914,23 +914,23 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="company" className="p-4 space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label>Company Name</Label>
                 <Input placeholder="Company" value={companyInfo.name} onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Email</Label>
                 <Input placeholder="Email" value={companyInfo.email} onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Phone</Label>
                 <Input placeholder="Phone" value={companyInfo.phone} onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Address</Label>
                 <Textarea placeholder="Address" value={companyInfo.address} onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })} />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Tax ID</Label>
                 <Input placeholder="Tax ID" value={companyInfo.taxId} onChange={(e) => setCompanyInfo({ ...companyInfo, taxId: e.target.value })} />
               </div>
@@ -1205,7 +1205,11 @@ export default function Dashboard() {
 
   // Template builder uses its own layout
   if (currentView === 'builder') {
-    return <TemplateBuilder onBack={() => { setSelectedTemplateForBuilder(null); setCurrentView('dashboard'); }} initialTemplate={selectedTemplateForBuilder} />;
+    return <TemplateBuilder 
+      onBack={() => { setSelectedTemplateForBuilder(null); setCurrentView('dashboard'); }} 
+      onTemplateSaved={() => { fetchData(); }}
+      initialTemplate={selectedTemplateForBuilder} 
+    />;
   }
 
   return (
