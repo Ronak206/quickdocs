@@ -130,6 +130,7 @@ export default function Dashboard() {
   
   // Payment state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showTestPlanModal, setShowTestPlanModal] = useState(false);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [isPro, setIsPro] = useState(false);
@@ -299,6 +300,7 @@ export default function Dashboard() {
       }
 
       toast.success('Test plan activated! You now have unlimited PDF generation!');
+      setShowTestPlanModal(false);
       fetchData();
     } catch (error) {
       console.error('Test plan activation error:', error);
@@ -1373,48 +1375,110 @@ export default function Dashboard() {
               <CardDescription>Try Pro features for free - no payment required</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-background border">
-                <p className="text-sm text-muted-foreground mb-3">
-                  Activate the test plan to get unlimited PDF generation without paying. 
-                  This is for testing purposes only.
-                </p>
-                <ul className="text-sm space-y-1 mb-4">
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3 w-3 text-blue-500" />
-                    Unlimited PDF generation
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3 w-3 text-blue-500" />
-                    All Pro features
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3 w-3 text-blue-500" />
-                    Free - no payment needed
-                  </li>
-                </ul>
-                <Button 
-                  variant="outline" 
-                  className="w-full border-blue-500 text-blue-600 hover:bg-blue-500/10"
-                  onClick={handleActivateTestPlan}
-                  disabled={isActivatingTest}
-                >
-                  {isActivatingTest ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Activating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Activate Test Plan
-                    </>
-                  )}
-                </Button>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-background border">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">Test (Demo) Plan</p>
+                    <Badge variant="outline" className="text-blue-600 border-blue-500">FREE</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Unlimited PDFs for testing</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-2xl font-bold">0<span className="text-sm font-normal"> USDT</span></span>
+                  <p className="text-xs text-muted-foreground">free for testing</p>
+                </div>
               </div>
+              <Button 
+                className="w-full bg-blue-500 hover:bg-blue-600"
+                onClick={() => setShowTestPlanModal(true)}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Get Test Plan
+              </Button>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* Test Plan Modal */}
+      <Dialog open={showTestPlanModal} onOpenChange={setShowTestPlanModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-600">
+              <Sparkles className="h-5 w-5" />
+              Get Test Plan (Demo)
+            </DialogTitle>
+            <DialogDescription>
+              Activate Pro features for free - no payment required
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="text-muted-foreground">Free Plan</p>
+                <p className="font-bold">10 PDFs/month</p>
+              </div>
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-blue-600">Test Plan</p>
+                <p className="font-bold text-blue-600">Unlimited PDFs</p>
+              </div>
+            </div>
+            
+            <div className="p-4 rounded-lg bg-muted/50">
+              <p className="text-sm font-medium mb-2">Test Plan Features:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-blue-500" />
+                  Unlimited PDF generation
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-blue-500" />
+                  All Pro features
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-blue-500" />
+                  Free - no payment needed
+                </li>
+              </ul>
+            </div>
+            
+            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <p className="text-sm text-blue-600">
+                <strong>Note:</strong> This is a demo plan for testing purposes. 
+                In production, this would require payment.
+              </p>
+            </div>
+            
+            <div className="space-y-2 pt-2">
+              <Button 
+                className="w-full bg-blue-500 hover:bg-blue-600" 
+                onClick={handleActivateTestPlan}
+                disabled={isActivatingTest}
+              >
+                {isActivatingTest ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Activating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Activate Test Plan
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setShowTestPlanModal(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Modal */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
