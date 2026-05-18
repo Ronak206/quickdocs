@@ -38,7 +38,8 @@ import {
   FileText, X, ArrowLeft, Printer, FileDown, ChevronRight, ChevronUp, Table,
   Award, MessageSquare, Columns, Box, BarChart, Gauge, Layers, Sparkles,
   File, FileCheck, RefreshCw, Check, ExternalLink, Play, Pause, GripVertical,
-  Ruler, Maximize, Scissors, FileImage, Droplet as DropletIcon, BookOpen, AlignCenter, Paperclip
+  Ruler, Maximize, Scissors, FileImage, Droplet as DropletIcon, BookOpen, AlignCenter, Paperclip,
+  ArrowUp, ArrowDown, CornerUpRight, CornerDownRight
 } from 'lucide-react';
 
 // Icon mapping for dynamic icon rendering
@@ -1624,17 +1625,73 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
       >
         {elementContent()}
         
-        {/* Resize handles */}
+        {/* Resize handles with icons */}
         {isSelected && !forPreview && (
           <>
-            <div onMouseDown={(e) => handleResizeStart(e, 'nw')} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-nw-resize" />
-            <div onMouseDown={(e) => handleResizeStart(e, 'ne')} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-ne-resize" />
-            <div onMouseDown={(e) => handleResizeStart(e, 'sw')} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-sw-resize" />
-            <div onMouseDown={(e) => handleResizeStart(e, 'se')} className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-se-resize" />
-            <div onMouseDown={(e) => handleResizeStart(e, 'n')} className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize" />
-            <div onMouseDown={(e) => handleResizeStart(e, 's')} className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize" />
-            <div onMouseDown={(e) => handleResizeStart(e, 'w')} className="absolute top-1/2 -translate-y-1/2 -left-1.5 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-w-resize" />
-            <div onMouseDown={(e) => handleResizeStart(e, 'e')} className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-e-resize" />
+            {/* Corner handles - NW */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 'nw')} 
+              className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-nw-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-blue-500">
+                <path d="M7 1L1 7M1 1v5M1 1h5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            {/* Corner handle - NE */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 'ne')} 
+              className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-ne-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-blue-500">
+                <path d="M1 1L7 7M7 1v5M7 1H2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            {/* Corner handle - SW */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 'sw')} 
+              className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-sw-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-blue-500">
+                <path d="M7 7L1 1M1 7V2M1 7h5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            {/* Corner handle - SE */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 'se')} 
+              className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-se-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-blue-500">
+                <path d="M1 7L7 1M7 7V2M7 7H2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            {/* Edge handle - N (top) */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 'n')} 
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-n-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <ArrowUp className="w-2.5 h-2.5 text-blue-500" />
+            </div>
+            {/* Edge handle - S (bottom) */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 's')} 
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-s-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <ArrowDown className="w-2.5 h-2.5 text-blue-500" />
+            </div>
+            {/* Edge handle - W (left) */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 'w')} 
+              className="absolute top-1/2 -translate-y-1/2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-w-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <ArrowLeft className="w-2.5 h-2.5 text-blue-500" />
+            </div>
+            {/* Edge handle - E (right) */}
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, 'e')} 
+              className="absolute top-1/2 -translate-y-1/2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-sm cursor-e-resize flex items-center justify-center hover:bg-blue-50 hover:border-blue-600 transition-colors shadow-sm"
+            >
+              <ArrowRight className="w-2.5 h-2.5 text-blue-500" />
+            </div>
           </>
         )}
       </div>
