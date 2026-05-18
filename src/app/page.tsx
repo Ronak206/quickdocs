@@ -207,6 +207,58 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Handle upgrade to Pro - creates NOWPayments invoice and redirects
+  const handleUpgradeToPro = async () => {
+    try {
+      toast.loading('Creating payment invoice...', { id: 'payment-loading' });
+      
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          pay_currency: 'usdttrc20', 
+          plan_type: 'PRO' 
+        }),
+      });
+      
+      const data = await response.json();
+      toast.dismiss('payment-loading');
+      
+      if (!response.ok) {
+        if (data.isPro) {
+          toast.success('You already have a Pro plan!');
+          fetchData();
+          return;
+        }
+        throw new Error(data.error || 'Failed to create payment');
+      }
+      
+      // If we have a pending payment, show info
+      if (data.message === 'You have a pending payment' && data.payment) {
+        toast.info('You have a pending payment. Checking status...');
+        // Could show payment status here
+        return;
+      }
+      
+      // Redirect to NOWPayments invoice URL
+      if (data.invoice_url) {
+        toast.success('Redirecting to NOWPayments...');
+        window.location.href = data.invoice_url;
+      } else if (data.pay_address) {
+        // Direct payment - show address
+        toast.success('Payment address generated!');
+        router.push(`/payment?status=address&address=${data.pay_address}&amount=${data.pay_amount}&currency=${data.pay_currency}`);
+      } else {
+        throw new Error('No payment URL received from NOWPayments');
+      }
+      
+    } catch (error) {
+      toast.dismiss('payment-loading');
+      console.error('Upgrade error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create payment');
+    }
+  };
+
   // Handle cancel plan
   const handleCancelPlan = async () => {
     try {
@@ -1277,7 +1329,7 @@ export default function Dashboard() {
             
             {!isPro ? (
               <div className="space-y-3">
-                <Button className="w-full" onClick={() => router.push('/payment?plan=PRO&amount=30&currency=USDT')}>
+                <Button className="w-full" onClick={handleUpgradeToPro}>
                   <Wallet className="h-4 w-4 mr-2" />
                   Upgrade to Pro
                 </Button>
