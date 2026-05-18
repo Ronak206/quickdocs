@@ -1678,24 +1678,23 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
     const { type, properties, style } = selectedElement;
 
     return (
-      <ScrollArea className="h-full w-full">
-        <div className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold capitalize">{type.replace('-', ' ')}</h3>
-            <div className="flex gap-1">
-              <Button size="icon" variant="ghost" onClick={() => { duplicateElement(selectedElement.id); toast.success('Element duplicated'); }}>
-                <Copy className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { deleteElement(selectedElement.id); toast.success('Element deleted'); }}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
+      <div className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold capitalize">{type.replace('-', ' ')}</h3>
+          <div className="flex gap-1">
+            <Button size="icon" variant="ghost" onClick={() => { duplicateElement(selectedElement.id); toast.success('Element duplicated'); }}>
+              <Copy className="w-4 h-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { deleteElement(selectedElement.id); toast.success('Element deleted'); }}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
+        </div>
 
-          {/* Position & Size */}
-          <CollapsibleSection id="position" title="Position & Size">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
+        {/* Position & Size */}
+        <CollapsibleSection id="position" title="Position & Size">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
                 <Label className="text-xs">X (mm)</Label>
                 <Input
                   type="number"
@@ -2551,24 +2550,22 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
             )}
           </CollapsibleSection>
         </div>
-      </ScrollArea>
     );
   };
 
   // Render Data Form panel
   const renderDataFormPanel = () => {
     return (
-      <ScrollArea className="h-full w-full">
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Form Data</h3>
-            <Button size="sm" variant="outline" onClick={() => { clearFormData(); toast.success('Form data cleared'); }}>
-              <Trash2 className="w-4 h-4 mr-1" />
-              Clear All
-            </Button>
-          </div>
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Form Data</h3>
+          <Button size="sm" variant="outline" onClick={() => { clearFormData(); toast.success('Form data cleared'); }}>
+            <Trash2 className="w-4 h-4 mr-1" />
+            Clear All
+          </Button>
+        </div>
 
-          {/* Quick Fill JSON */}
+        {/* Quick Fill JSON */}
           <Card>
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-sm">Quick Fill (JSON)</CardTitle>
@@ -2780,7 +2777,6 @@ export default function TemplateBuilder({ onBack, initialTemplate }: TemplateBui
             </div>
           )}
         </div>
-      </ScrollArea>
     );
   };
 
