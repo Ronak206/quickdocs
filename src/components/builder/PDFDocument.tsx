@@ -153,6 +153,26 @@ const getTextAlign = (align?: string): "left" | "center" | "right" | "justify" =
   return "left";
 };
 
+// Helper to render text with newlines preserved
+const renderTextWithNewlines = (text: string, style: any) => {
+  if (!text) return null;
+  
+  // Split by newlines and render each line
+  const lines = text.split('\n');
+  
+  if (lines.length === 1) {
+    return <Text style={style}>{text}</Text>;
+  }
+  
+  return (
+    <View style={{ flexDirection: 'column' }}>
+      {lines.map((line, i) => (
+        <Text key={i} style={style}>{line || ' '}</Text>
+      ))}
+    </View>
+  );
+};
+
 // Render individual element based on type
 function renderElement(el: TemplateElement, index: number) {
   const { type, properties, style, position, size } = el;
@@ -169,16 +189,14 @@ function renderElement(el: TemplateElement, index: number) {
     case "label":
       return (
         <View key={el.id || index} style={containerStyle}>
-          <Text style={{
+          {renderTextWithNewlines(properties.text || "Label", {
             fontSize: properties.fontSize || 14,
             fontWeight: properties.bold ? "bold" : "normal",
             fontStyle: properties.italic ? "italic" : "normal",
             color: properties.color || "#000000",
             textAlign: getTextAlign(properties.textAlign),
             backgroundColor: properties.backgroundColor || "transparent",
-          }}>
-            {properties.text || "Label"}
-          </Text>
+          })}
         </View>
       );
 
@@ -186,23 +204,21 @@ function renderElement(el: TemplateElement, index: number) {
       const headingSizes: Record<number, number> = { 1: 32, 2: 26, 3: 22, 4: 18, 5: 16, 6: 14 };
       return (
         <View key={el.id || index} style={containerStyle}>
-          <Text style={{
+          {renderTextWithNewlines(properties.text || "Heading", {
             fontSize: properties.fontSize || headingSizes[properties.headingLevel || 2] || 26,
             fontWeight: properties.bold ? "bold" : "bold",
             fontStyle: properties.italic ? "italic" : "normal",
             color: properties.color || "#000000",
             textAlign: getTextAlign(properties.textAlign),
             backgroundColor: properties.backgroundColor || "transparent",
-          }}>
-            {properties.text || "Heading"}
-          </Text>
+          })}
         </View>
       );
 
     case "paragraph":
       return (
         <View key={el.id || index} style={containerStyle}>
-          <Text style={{
+          {renderTextWithNewlines(properties.text || "Paragraph text goes here...", {
             fontSize: properties.fontSize || 14,
             fontWeight: properties.bold ? "bold" : "normal",
             fontStyle: properties.italic ? "italic" : "normal",
@@ -210,9 +226,7 @@ function renderElement(el: TemplateElement, index: number) {
             textAlign: getTextAlign(properties.textAlign),
             lineHeight: properties.lineHeight || 1.5,
             backgroundColor: properties.backgroundColor || "transparent",
-          }}>
-            {properties.text || "Paragraph text goes here..."}
-          </Text>
+          })}
         </View>
       );
 
@@ -221,13 +235,11 @@ function renderElement(el: TemplateElement, index: number) {
       const strippedText = properties.text?.replace(/<[^>]*>/g, '') || "Rich text content";
       return (
         <View key={el.id || index} style={containerStyle}>
-          <Text style={{
+          {renderTextWithNewlines(strippedText, {
             fontSize: properties.fontSize || 14,
             color: properties.color || "#000000",
             backgroundColor: properties.backgroundColor || "transparent",
-          }}>
-            {strippedText}
-          </Text>
+          })}
         </View>
       );
 
