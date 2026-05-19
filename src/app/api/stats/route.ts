@@ -61,7 +61,7 @@ export async function GET() {
       prisma.template.aggregate({
         _sum: { downloads: true },
         where: { isPublic: true },
-      }).then(result => result._sum.downloads || 36500),
+      }).then(result => result._sum.downloads || 0),
       
       // Current month usage
       prisma.usage.findUnique({
