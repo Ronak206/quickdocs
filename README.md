@@ -30,6 +30,7 @@ A powerful drag-and-drop document template builder for creating professional PDF
 - [Database Models](#database-models)
 - [API Reference](#api-reference)
 - [Subscription Plans](#subscription-plans)
+- [Payment Integration](#payment-integration)
 - [What's Done & Remaining](#whats-done--remaining)
 - [Contributing](#contributing)
 - [License](#license)
@@ -43,8 +44,10 @@ QuickDocs is a modern, full-stack document generation platform that enables user
 ### Key Highlights
 
 - 🔐 **Secure Authentication** - Email/password login with NextAuth.js
+- 💳 **Payment Integration** - NOWPayments cryptocurrency payments
 - 📊 **Subscription Plans** - Free, Starter, Pro, Enterprise tiers with PDF limits
 - 📄 **50+ Element Types** - Comprehensive library for document building
+- 🎨 **Text Formatting** - Bold, italic, underline support for all text elements
 - 🗜️ **Data Compression** - Document data compressed before storage
 - 📈 **Usage Tracking** - Monthly PDF generation limits per plan
 - 🎨 **Visual Editor** - Drag-and-drop canvas with real-time preview
@@ -76,9 +79,9 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ Subscription │  │    Usage     │  │   Storage    │       │
+│  │ Subscription │  │    Usage     │  │   Payment    │       │
 │  │   Service    │  │  Tracking    │  │   Service    │       │
-│  │  (Plans)     │  │  (Monthly)   │  │  (File/CDN)  │       │
+│  │  (Plans)     │  │  (Monthly)   │  │ (NOWPayments)│       │
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -92,7 +95,7 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 | **O**pen/Closed | Element types and plans are extensible without modifying core logic |
 | **L**iskov Substitution | All element types follow the same `TemplateElement` interface |
 | **I**nterface Segregation | Separate interfaces for different element categories |
-| **D**ependency Inversion | Components depend on abstractions (Zustand store, API contracts) |
+| **D**ependency Institution | Components depend on abstractions (Zustand store, API contracts) |
 
 ---
 
@@ -110,6 +113,9 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 | 💾 **Database** | User Profiles | Store user info, company details |
 | 💾 **Database** | Document Storage | Compressed JSON storage with hash deduplication |
 | 💰 **Subscription** | Plan System | Free (10 PDFs), Starter (50), Pro (200), Enterprise (Unlimited) |
+| 💳 **Payments** | NOWPayments Integration | Cryptocurrency payment processing |
+| 💳 **Payments** | Payment Webhooks | Real-time payment confirmation |
+| 💳 **Payments** | Plan Upgrades | Upgrade subscription after payment |
 | 📊 **Usage** | Monthly Tracking | Track PDF generation per month |
 | 📊 **Usage** | PDF Limits | Enforce limits based on subscription plan |
 | 🗜️ **Compression** | Data Compression | Gzip compression for document data |
@@ -117,8 +123,13 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 | 🎨 **Editor** | Drag & Drop | Intuitive canvas-based template building |
 | 🎨 **Editor** | 50+ Elements | Comprehensive element library |
 | 🎨 **Editor** | Real-time Preview | Live preview while building |
+| 🎨 **Editor** | Text Formatting | Bold, italic, underline for text elements |
+| 🎨 **Editor** | New Line Support | Enter for new lines, Tab for indentation |
+| 🎨 **Editor** | PDF Preview | Preview PDF output before export |
 | 📄 **API** | Stats API | Fetch dashboard statistics |
 | 📄 **API** | Documents API | CRUD operations for documents |
+| 📄 **API** | Templates API | Template management |
+| 📄 **API** | Payments API | Payment creation and management |
 | 📄 **API** | Seed API | Initialize plans and templates |
 | 📱 **UI** | Responsive Design | Desktop and tablet support |
 | 📱 **UI** | Dark Mode Ready | Theme provider configured |
@@ -129,7 +140,6 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 |----------|---------|-------------|
 | 🔴 High | PDF Generation | Server-side PDF generation from templates |
 | 🔴 High | Element Functionality | Full implementation of all 50+ elements |
-| 🔴 High | Stripe Integration | Payment processing for subscriptions |
 | 🟡 Medium | Template Persistence | Save custom templates to database |
 | 🟡 Medium | Image Upload | File upload service for logos, images |
 | 🟡 Medium | Email Verification | Verify user email on signup |
@@ -154,6 +164,7 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 | **Database** | MongoDB | Atlas |
 | **ORM** | Prisma | 6.x |
 | **Authentication** | NextAuth.js | 4.x |
+| **Payments** | NOWPayments | API v3 |
 | **Compression** | pako | 2.x |
 | **Icons** | Lucide React | Latest |
 | **Charts** | Recharts | 2.x |
@@ -195,6 +206,10 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
    # NextAuth.js Configuration
    NEXTAUTH_SECRET="your-secret-key-here"
    NEXTAUTH_URL="http://localhost:3000"
+   
+   # NOWPayments Configuration
+   NOWPAYMENTS_API_KEY="your-api-key"
+   NOWPAYMENTS_IPN_SECRET="your-ipn-secret"
    ```
    
    Generate a secret key:
@@ -248,8 +263,13 @@ quickdocs/
 │   │   │   │   └── 📂 register/     # Registration API
 │   │   │   ├── 📂 stats/            # Dashboard statistics
 │   │   │   ├── 📂 documents/        # Document CRUD
+│   │   │   ├── 📂 templates/        # Template CRUD
+│   │   │   ├── 📂 payments/         # Payment endpoints
+│   │   │   ├── 📂 webhooks/         # Webhook handlers
+│   │   │   │   └── 📂 nowpayments/  # NOWPayments IPN
 │   │   │   ├── 📂 seed/             # Database seeding
 │   │   │   └── 📂 health/           # Health check
+│   │   ├── 📂 payment/              # Payment page
 │   │   ├── 📄 page.tsx              # Dashboard (protected)
 │   │   ├── 📄 layout.tsx            # Root layout
 │   │   └── 📄 globals.css           # Global styles
@@ -258,7 +278,9 @@ quickdocs/
 │   │   ├── 📂 builder/              # Template builder
 │   │   │   ├── 📄 TemplateBuilder.tsx
 │   │   │   ├── 📄 types.ts          # Element types
-│   │   │   └── 📄 store.ts          # Zustand store
+│   │   │   ├── 📄 store.ts          # Zustand store
+│   │   │   ├── 📄 PDFDocument.tsx   # PDF rendering
+│   │   │   └── 📄 PDFPreviewModal.tsx
 │   │   ├── 📂 providers/            # React providers
 │   │   │   └── 📄 Providers.tsx
 │   │   └── 📂 ui/                   # shadcn/ui components
@@ -267,6 +289,7 @@ quickdocs/
 │   │   ├── 📄 auth.ts               # NextAuth config
 │   │   ├── 📄 db.ts                 # Prisma client
 │   │   ├── 📄 session.ts            # Session helpers
+│   │   ├── 📄 nowpayments.ts        # Payment integration
 │   │   ├── 📄 utils.ts              # Utility functions
 │   │   └── 📂 services/             # Business services
 │   │       └── 📄 compression.ts    # Data compression
@@ -306,6 +329,7 @@ model User {
   documents     Document[]
   templates     Template[]
   usage         Usage[]
+  payments      Payment[]
 }
 ```
 
@@ -335,6 +359,24 @@ model Plan {
   storageLimit      Int      @default(10) // MB
   features          String   // JSON array
   subscriptions     Subscription[]
+}
+```
+
+### Payment Model
+```prisma
+model Payment {
+  id              String   @id @default(auto())
+  userId          String
+  planId          String
+  amount          Float
+  currency        String
+  paymentId       String   @unique // NOWPayments ID
+  paymentStatus   String
+  payAddress      String?
+  payAmount       Float?
+  user            User     @relation(...)
+  plan            Plan     @relation(...)
+  createdAt       DateTime @default(now())
 }
 ```
 
@@ -390,7 +432,7 @@ model Document {
 **Response:**
 ```json
 {
-  "stats": { "documents": 5, "templates": 6, "categories": 6, "downloads": 36500 },
+  "stats": { "documents": 5, "templates": 6, "categories": 6 },
   "usage": { "pdfsUsed": 3, "pdfLimit": 10, "pdfsRemaining": 7 },
   "plan": { "name": "FREE", "displayName": "Free", "price": 0 }
 }
@@ -402,6 +444,8 @@ model Document {
 |--------|----------|-------------|
 | `GET` | `/api/documents` | List user's documents |
 | `POST` | `/api/documents` | Create new document (checks PDF limit) |
+| `GET` | `/api/documents/[id]` | Get document by ID |
+| `DELETE` | `/api/documents/[id]` | Delete document |
 
 **Create Document Request:**
 ```json
@@ -415,11 +459,40 @@ model Document {
 }
 ```
 
+### Templates
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/templates` | List all templates |
+| `GET` | `/api/templates/[id]` | Get template by ID |
+
+### Payments
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/payments` | Create payment request |
+| `GET` | `/api/payments` | Get payment status |
+
+**Create Payment Request:**
+```json
+{
+  "planId": "plan_id_here",
+  "successUrl": "http://localhost:3000?payment=success"
+}
+```
+
+### Webhooks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/webhooks/nowpayments` | NOWPayments IPN callback |
+
 ### Seed
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/seed` | Seed plans and default templates |
+| `POST` | `/api/seed-plans` | Seed subscription plans |
 
 ### Health Check
 
@@ -440,6 +513,31 @@ model Document {
 
 ---
 
+## 💳 Payment Integration
+
+QuickDocs uses **NOWPayments** for cryptocurrency payment processing:
+
+### Supported Cryptocurrencies
+- Bitcoin (BTC)
+- Ethereum (ETH)
+- USDT (TRC20/ERC20)
+- And 50+ other cryptocurrencies
+
+### Payment Flow
+1. User selects a plan
+2. Payment request created via NOWPayments API
+3. User redirected to payment page with crypto address
+4. Webhook receives payment confirmation
+5. User's subscription is automatically upgraded
+
+### Environment Variables
+```env
+NOWPAYMENTS_API_KEY=your_api_key
+NOWPAYMENTS_IPN_SECRET=your_ipn_secret
+```
+
+---
+
 ## 📋 What's Done & Remaining
 
 ### ✅ Completed
@@ -456,6 +554,7 @@ model Document {
    - Document & DocumentItem models
    - Template & TemplateField models
    - Usage tracking model
+   - Payment model
    - Activity logging model
 
 3. **Subscription & Plans**
@@ -463,38 +562,55 @@ model Document {
    - Subscription management
    - PDF limit enforcement
 
-4. **Usage Tracking**
+4. **Payment Integration**
+   - NOWPayments API integration
+   - Payment creation flow
+   - Webhook handling
+   - Plan upgrades
+
+5. **Usage Tracking**
    - Monthly PDF count tracking
    - Storage usage tracking
    - Per-user, per-month records
 
-5. **Document Management**
+6. **Document Management**
    - Create documents with compression
    - PDF limit checking before creation
    - Activity logging
 
-6. **Data Compression**
+7. **Data Compression**
    - Gzip compression service
    - Hash deduplication
    - Size tracking
 
-7. **API Endpoints**
+8. **Template Builder**
+   - Drag-and-drop interface
+   - 50+ element types
+   - Text formatting (bold, italic, underline)
+   - New line and tab support
+   - Real-time preview
+   - PDF preview modal
+
+9. **API Endpoints**
    - `/api/stats` - Dashboard statistics
    - `/api/documents` - Document CRUD
+   - `/api/templates` - Template management
+   - `/api/payments` - Payment processing
+   - `/api/webhooks/nowpayments` - Payment webhooks
    - `/api/seed` - Database initialization
    - `/api/health` - System health check
 
-8. **Dashboard UI**
-   - Stats cards with real data
-   - Usage progress bar
-   - Plan indicator
-   - Recent documents list
+10. **Dashboard UI**
+    - Stats cards with real data
+    - Usage progress bar
+    - Plan indicator
+    - Recent documents list
+    - Template browser
 
 ### 🚧 Remaining
 
 1. **High Priority**
    - PDF generation from templates
-   - Stripe payment integration
    - Email verification
    - Password reset
 
