@@ -150,6 +150,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
   // Document name editing state
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  
+  // Local state for text inputs to prevent focus loss on each keystroke
+  const [localTextValue, setLocalTextValue] = useState('');
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -1921,8 +1925,18 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Content</Label>
                   <Textarea
-                    value={properties.text || ''}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, text: e.target.value } })}
+                    value={editingFieldId === 'text' ? localTextValue : (properties.text || '')}
+                    onChange={(e) => {
+                      setLocalTextValue(e.target.value);
+                    }}
+                    onFocus={() => {
+                      setLocalTextValue(properties.text || '');
+                      setEditingFieldId('text');
+                    }}
+                    onBlur={() => {
+                      updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } });
+                      setEditingFieldId(null);
+                    }}
                     rows={3}
                   />
                 </div>
@@ -2057,8 +2071,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
           {['textfield', 'textarea', 'number', 'currency', 'email', 'phone', 'url', 'password', 'date', 'time', 'datetime', 'dropdown', 'multiselect', 'file-upload', 'signature'].includes(type) && (
             <CollapsibleSection id="placeholder" title="Placeholder">
               <Input
-                value={properties.placeholder || ''}
-                onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, placeholder: e.target.value } })}
+                value={editingFieldId === 'placeholder' ? localTextValue : (properties.placeholder || '')}
+                onChange={(e) => setLocalTextValue(e.target.value)}
+                onFocus={() => { setLocalTextValue(properties.placeholder || ''); setEditingFieldId('placeholder'); }}
+                onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, placeholder: localTextValue } }); setEditingFieldId(null); }}
               />
             </CollapsibleSection>
           )}
@@ -2071,8 +2087,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Label</Label>
                   <Input
-                    value={properties.label || ''}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, label: e.target.value } })}
+                    value={editingFieldId === 'checkbox-label' ? localTextValue : (properties.label || '')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.label || ''); setEditingFieldId('checkbox-label'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, label: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -2090,23 +2108,29 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Label</Label>
                   <Input
-                    value={properties.label || ''}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, label: e.target.value } })}
+                    value={editingFieldId === 'toggle-label' ? localTextValue : (properties.label || '')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.label || ''); setEditingFieldId('toggle-label'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, label: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">On Label</Label>
                     <Input
-                      value={properties.onLabel || 'On'}
-                      onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, onLabel: e.target.value } })}
+                      value={editingFieldId === 'toggle-onlabel' ? localTextValue : (properties.onLabel || 'On')}
+                      onChange={(e) => setLocalTextValue(e.target.value)}
+                      onFocus={() => { setLocalTextValue(properties.onLabel || 'On'); setEditingFieldId('toggle-onlabel'); }}
+                      onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, onLabel: localTextValue } }); setEditingFieldId(null); }}
                     />
                   </div>
                   <div>
                     <Label className="text-xs">Off Label</Label>
                     <Input
-                      value={properties.offLabel || 'Off'}
-                      onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, offLabel: e.target.value } })}
+                      value={editingFieldId === 'toggle-offlabel' ? localTextValue : (properties.offLabel || 'Off')}
+                      onChange={(e) => setLocalTextValue(e.target.value)}
+                      onFocus={() => { setLocalTextValue(properties.offLabel || 'Off'); setEditingFieldId('toggle-offlabel'); }}
+                      onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, offLabel: localTextValue } }); setEditingFieldId(null); }}
                     />
                   </div>
                 </div>
@@ -2125,8 +2149,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <div>
                 <Label className="text-xs">Options (one per line)</Label>
                 <Textarea
-                  value={properties.options?.join('\n') || ''}
-                  onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, options: e.target.value.split('\n').filter(Boolean) } })}
+                  value={editingFieldId === 'options' ? localTextValue : (properties.options?.join('\n') || '')}
+                  onChange={(e) => setLocalTextValue(e.target.value)}
+                  onFocus={() => { setLocalTextValue(properties.options?.join('\n') || ''); setEditingFieldId('options'); }}
+                  onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, options: localTextValue.split('\n').filter(Boolean) } }); setEditingFieldId(null); }}
                   rows={4}
                 />
               </div>
@@ -2284,8 +2310,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Button Text</Label>
                   <Input
-                    value={properties.text || 'Button'}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, text: e.target.value } })}
+                    value={editingFieldId === 'button-text' ? localTextValue : (properties.text || 'Button')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.text || 'Button'); setEditingFieldId('button-text'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div>
@@ -2315,15 +2343,19 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Link Text</Label>
                   <Input
-                    value={properties.text || 'Click here'}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, text: e.target.value } })}
+                    value={editingFieldId === 'hyperlink-text' ? localTextValue : (properties.text || 'Click here')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.text || 'Click here'); setEditingFieldId('hyperlink-text'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div>
                   <Label className="text-xs">URL</Label>
                   <Input
-                    value={properties.linkUrl || ''}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, linkUrl: e.target.value } })}
+                    value={editingFieldId === 'hyperlink-url' ? localTextValue : (properties.linkUrl || '')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.linkUrl || ''); setEditingFieldId('hyperlink-url'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, linkUrl: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div>
@@ -2350,16 +2382,20 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Image URL</Label>
                   <Input
-                    value={properties.src || ''}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, src: e.target.value } })}
+                    value={editingFieldId === 'image-src' ? localTextValue : (properties.src || '')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.src || ''); setEditingFieldId('image-src'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, src: localTextValue } }); setEditingFieldId(null); }}
                     placeholder="https://..."
                   />
                 </div>
                 <div>
                   <Label className="text-xs">Alt Text</Label>
                   <Input
-                    value={properties.alt || ''}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, alt: e.target.value } })}
+                    value={editingFieldId === 'image-alt' ? localTextValue : (properties.alt || '')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.alt || ''); setEditingFieldId('image-alt'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, alt: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div>
@@ -2456,8 +2492,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Stamp Text</Label>
                   <Input
-                    value={properties.text || 'APPROVED'}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, text: e.target.value } })}
+                    value={editingFieldId === 'stamp-text' ? localTextValue : (properties.text || 'APPROVED')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.text || 'APPROVED'); setEditingFieldId('stamp-text'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div>
@@ -2485,8 +2523,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Badge Text</Label>
                   <Input
-                    value={properties.text || 'New'}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, text: e.target.value } })}
+                    value={editingFieldId === 'badge-text' ? localTextValue : (properties.text || 'New')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.text || 'New'); setEditingFieldId('badge-text'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div>
@@ -2515,8 +2555,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 <div>
                   <Label className="text-xs">Watermark Text</Label>
                   <Input
-                    value={properties.text || 'WATERMARK'}
-                    onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, text: e.target.value } })}
+                    value={editingFieldId === 'watermark-text' ? localTextValue : (properties.text || 'WATERMARK')}
+                    onChange={(e) => setLocalTextValue(e.target.value)}
+                    onFocus={() => { setLocalTextValue(properties.text || 'WATERMARK'); setEditingFieldId('watermark-text'); }}
+                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
                   />
                 </div>
                 <div>
@@ -2637,8 +2679,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <div>
                 <Label className="text-xs">List Items (one per line)</Label>
                 <Textarea
-                  value={properties.listItems?.join('\n') || ''}
-                  onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, listItems: e.target.value.split('\n').filter(Boolean) } })}
+                  value={editingFieldId === 'list-items' ? localTextValue : (properties.listItems?.join('\n') || '')}
+                  onChange={(e) => setLocalTextValue(e.target.value)}
+                  onFocus={() => { setLocalTextValue(properties.listItems?.join('\n') || ''); setEditingFieldId('list-items'); }}
+                  onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, listItems: localTextValue.split('\n').filter(Boolean) } }); setEditingFieldId(null); }}
                   rows={5}
                 />
               </div>
@@ -2727,9 +2771,11 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <div>
                 <Label className="text-xs">Field Name</Label>
                 <Input
-                  value={properties.fieldName || ''}
+                  value={editingFieldId === 'field-name' ? localTextValue : (properties.fieldName || '')}
+                  onChange={(e) => setLocalTextValue(e.target.value)}
+                  onFocus={() => { setLocalTextValue(properties.fieldName || ''); setEditingFieldId('field-name'); }}
+                  onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, fieldName: localTextValue } }); setEditingFieldId(null); }}
                   placeholder="e.g., client_name"
-                  onChange={(e) => updateElement(selectedElement.id, { properties: { ...properties, fieldName: e.target.value } })}
                 />
               </div>
             )}
