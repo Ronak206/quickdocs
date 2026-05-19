@@ -102,6 +102,24 @@ const StableTextarea = React.memo(function StableTextarea({
     }
   }, [externalValue, isFocused]);
 
+  // Handle Tab key to insert tab character instead of moving focus
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newValue = internalValue.substring(0, start) + '\t' + internalValue.substring(end);
+        setInternalValue(newValue);
+        // Set cursor position after the tab
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 1;
+        }, 0);
+      }
+    }
+  };
+
   return (
     <Textarea
       ref={textareaRef}
@@ -112,6 +130,7 @@ const StableTextarea = React.memo(function StableTextarea({
       onChange={(e) => {
         setInternalValue(e.target.value);
       }}
+      onKeyDown={handleKeyDown}
       onFocus={() => {
         setInternalValue(externalValue);
         setIsFocused(true);
