@@ -24,6 +24,107 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 
+// ─── Stable Input Components ───────────────────────────────────────────────
+// These components use React.memo + internal state to prevent focus loss
+// when the parent re-renders due to Zustand store updates.
+
+interface StableInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  type?: string;
+}
+
+const StableInput = React.memo(function StableInput({
+  value: externalValue,
+  onChange,
+  placeholder,
+  className,
+  type,
+}: StableInputProps) {
+  const [internalValue, setInternalValue] = useState(externalValue);
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync external value when not focused
+  useEffect(() => {
+    if (!isFocused) {
+      setInternalValue(externalValue);
+    }
+  }, [externalValue, isFocused]);
+
+  return (
+    <Input
+      ref={inputRef}
+      type={type}
+      className={className}
+      placeholder={placeholder}
+      value={isFocused ? internalValue : externalValue}
+      onChange={(e) => {
+        setInternalValue(e.target.value);
+      }}
+      onFocus={() => {
+        setInternalValue(externalValue);
+        setIsFocused(true);
+      }}
+      onBlur={() => {
+        setIsFocused(false);
+        onChange(internalValue);
+      }}
+    />
+  );
+});
+
+interface StableTextareaProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  rows?: number;
+}
+
+const StableTextarea = React.memo(function StableTextarea({
+  value: externalValue,
+  onChange,
+  placeholder,
+  className,
+  rows,
+}: StableTextareaProps) {
+  const [internalValue, setInternalValue] = useState(externalValue);
+  const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync external value when not focused
+  useEffect(() => {
+    if (!isFocused) {
+      setInternalValue(externalValue);
+    }
+  }, [externalValue, isFocused]);
+
+  return (
+    <Textarea
+      ref={textareaRef}
+      className={className}
+      placeholder={placeholder}
+      rows={rows}
+      value={isFocused ? internalValue : externalValue}
+      onChange={(e) => {
+        setInternalValue(e.target.value);
+      }}
+      onFocus={() => {
+        setInternalValue(externalValue);
+        setIsFocused(true);
+      }}
+      onBlur={() => {
+        setIsFocused(false);
+        onChange(internalValue);
+      }}
+    />
+  );
+});
+// ─── End Stable Input Components ────────────────────────────────────────────
+
 // PDF components - dynamic import for SSR safety
 import { PDFPreviewModal } from './PDFPreviewModal';
 
@@ -150,10 +251,6 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
   // Document name editing state
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
-  
-  // Local state for text inputs to prevent focus loss on each keystroke
-  const [localTextValue, setLocalTextValue] = useState('');
-  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -1924,19 +2021,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               {['label', 'heading', 'paragraph', 'rich-text'].includes(type) && (
                 <div>
                   <Label className="text-xs">Content</Label>
-                  <Textarea
-                    value={editingFieldId === 'text' ? localTextValue : (properties.text || '')}
-                    onChange={(e) => {
-                      setLocalTextValue(e.target.value);
-                    }}
-                    onFocus={() => {
-                      setLocalTextValue(properties.text || '');
-                      setEditingFieldId('text');
-                    }}
-                    onBlur={() => {
-                      updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } });
-                      setEditingFieldId(null);
-                    }}
+                  <StableTextarea
+                    value={properties.text || ''}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, text: value } })}
                     rows={3}
                   />
                 </div>
@@ -2070,11 +2157,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
           {/* Placeholder for inputs */}
           {['textfield', 'textarea', 'number', 'currency', 'email', 'phone', 'url', 'password', 'date', 'time', 'datetime', 'dropdown', 'multiselect', 'file-upload', 'signature'].includes(type) && (
             <CollapsibleSection id="placeholder" title="Placeholder">
-              <Input
-                value={editingFieldId === 'placeholder' ? localTextValue : (properties.placeholder || '')}
-                onChange={(e) => setLocalTextValue(e.target.value)}
-                onFocus={() => { setLocalTextValue(properties.placeholder || ''); setEditingFieldId('placeholder'); }}
-                onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, placeholder: localTextValue } }); setEditingFieldId(null); }}
+              <StableInput
+                value={properties.placeholder || ''}
+                onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, placeholder: value } })}
               />
             </CollapsibleSection>
           )}
@@ -2086,11 +2171,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Label</Label>
-                  <Input
-                    value={editingFieldId === 'checkbox-label' ? localTextValue : (properties.label || '')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.label || ''); setEditingFieldId('checkbox-label'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, label: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.label || ''}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, label: value } })}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -2107,30 +2190,24 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Label</Label>
-                  <Input
-                    value={editingFieldId === 'toggle-label' ? localTextValue : (properties.label || '')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.label || ''); setEditingFieldId('toggle-label'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, label: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.label || ''}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, label: value } })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">On Label</Label>
-                    <Input
-                      value={editingFieldId === 'toggle-onlabel' ? localTextValue : (properties.onLabel || 'On')}
-                      onChange={(e) => setLocalTextValue(e.target.value)}
-                      onFocus={() => { setLocalTextValue(properties.onLabel || 'On'); setEditingFieldId('toggle-onlabel'); }}
-                      onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, onLabel: localTextValue } }); setEditingFieldId(null); }}
+                    <StableInput
+                      value={properties.onLabel || 'On'}
+                      onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, onLabel: value } })}
                     />
                   </div>
                   <div>
                     <Label className="text-xs">Off Label</Label>
-                    <Input
-                      value={editingFieldId === 'toggle-offlabel' ? localTextValue : (properties.offLabel || 'Off')}
-                      onChange={(e) => setLocalTextValue(e.target.value)}
-                      onFocus={() => { setLocalTextValue(properties.offLabel || 'Off'); setEditingFieldId('toggle-offlabel'); }}
-                      onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, offLabel: localTextValue } }); setEditingFieldId(null); }}
+                    <StableInput
+                      value={properties.offLabel || 'Off'}
+                      onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, offLabel: value } })}
                     />
                   </div>
                 </div>
@@ -2148,11 +2225,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
             {['radio', 'dropdown', 'multiselect'].includes(type) && (
               <div>
                 <Label className="text-xs">Options (one per line)</Label>
-                <Textarea
-                  value={editingFieldId === 'options' ? localTextValue : (properties.options?.join('\n') || '')}
-                  onChange={(e) => setLocalTextValue(e.target.value)}
-                  onFocus={() => { setLocalTextValue(properties.options?.join('\n') || ''); setEditingFieldId('options'); }}
-                  onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, options: localTextValue.split('\n').filter(Boolean) } }); setEditingFieldId(null); }}
+                <StableTextarea
+                  value={properties.options?.join('\n') || ''}
+                  onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, options: value.split('\n').filter(Boolean) } })}
                   rows={4}
                 />
               </div>
@@ -2309,11 +2384,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Button Text</Label>
-                  <Input
-                    value={editingFieldId === 'button-text' ? localTextValue : (properties.text || 'Button')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.text || 'Button'); setEditingFieldId('button-text'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.text || 'Button'}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, text: value } })}
                   />
                 </div>
                 <div>
@@ -2342,20 +2415,16 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Link Text</Label>
-                  <Input
-                    value={editingFieldId === 'hyperlink-text' ? localTextValue : (properties.text || 'Click here')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.text || 'Click here'); setEditingFieldId('hyperlink-text'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.text || 'Click here'}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, text: value } })}
                   />
                 </div>
                 <div>
                   <Label className="text-xs">URL</Label>
-                  <Input
-                    value={editingFieldId === 'hyperlink-url' ? localTextValue : (properties.linkUrl || '')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.linkUrl || ''); setEditingFieldId('hyperlink-url'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, linkUrl: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.linkUrl || ''}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, linkUrl: value } })}
                   />
                 </div>
                 <div>
@@ -2381,21 +2450,17 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Image URL</Label>
-                  <Input
-                    value={editingFieldId === 'image-src' ? localTextValue : (properties.src || '')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.src || ''); setEditingFieldId('image-src'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, src: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.src || ''}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, src: value } })}
                     placeholder="https://..."
                   />
                 </div>
                 <div>
                   <Label className="text-xs">Alt Text</Label>
-                  <Input
-                    value={editingFieldId === 'image-alt' ? localTextValue : (properties.alt || '')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.alt || ''); setEditingFieldId('image-alt'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, alt: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.alt || ''}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, alt: value } })}
                   />
                 </div>
                 <div>
@@ -2491,11 +2556,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Stamp Text</Label>
-                  <Input
-                    value={editingFieldId === 'stamp-text' ? localTextValue : (properties.text || 'APPROVED')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.text || 'APPROVED'); setEditingFieldId('stamp-text'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.text || 'APPROVED'}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, text: value } })}
                   />
                 </div>
                 <div>
@@ -2522,11 +2585,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Badge Text</Label>
-                  <Input
-                    value={editingFieldId === 'badge-text' ? localTextValue : (properties.text || 'New')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.text || 'New'); setEditingFieldId('badge-text'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.text || 'New'}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, text: value } })}
                   />
                 </div>
                 <div>
@@ -2554,11 +2615,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               <>
                 <div>
                   <Label className="text-xs">Watermark Text</Label>
-                  <Input
-                    value={editingFieldId === 'watermark-text' ? localTextValue : (properties.text || 'WATERMARK')}
-                    onChange={(e) => setLocalTextValue(e.target.value)}
-                    onFocus={() => { setLocalTextValue(properties.text || 'WATERMARK'); setEditingFieldId('watermark-text'); }}
-                    onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, text: localTextValue } }); setEditingFieldId(null); }}
+                  <StableInput
+                    value={properties.text || 'WATERMARK'}
+                    onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, text: value } })}
                   />
                 </div>
                 <div>
@@ -2678,11 +2737,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
             <CollapsibleSection id="list" title="List Settings">
               <div>
                 <Label className="text-xs">List Items (one per line)</Label>
-                <Textarea
-                  value={editingFieldId === 'list-items' ? localTextValue : (properties.listItems?.join('\n') || '')}
-                  onChange={(e) => setLocalTextValue(e.target.value)}
-                  onFocus={() => { setLocalTextValue(properties.listItems?.join('\n') || ''); setEditingFieldId('list-items'); }}
-                  onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, listItems: localTextValue.split('\n').filter(Boolean) } }); setEditingFieldId(null); }}
+                <StableTextarea
+                  value={properties.listItems?.join('\n') || ''}
+                  onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, listItems: value.split('\n').filter(Boolean) } })}
                   rows={5}
                 />
               </div>
@@ -2770,11 +2827,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
             {properties.isDynamic && (
               <div>
                 <Label className="text-xs">Field Name</Label>
-                <Input
-                  value={editingFieldId === 'field-name' ? localTextValue : (properties.fieldName || '')}
-                  onChange={(e) => setLocalTextValue(e.target.value)}
-                  onFocus={() => { setLocalTextValue(properties.fieldName || ''); setEditingFieldId('field-name'); }}
-                  onBlur={() => { updateElement(selectedElement.id, { properties: { ...properties, fieldName: localTextValue } }); setEditingFieldId(null); }}
+                <StableInput
+                  value={properties.fieldName || ''}
+                  onChange={(value) => updateElement(selectedElement.id, { properties: { ...properties, fieldName: value } })}
                   placeholder="e.g., client_name"
                 />
               </div>
