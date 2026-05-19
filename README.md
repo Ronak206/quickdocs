@@ -45,7 +45,7 @@ QuickDocs is a modern, full-stack document generation platform that enables user
 
 - 🔐 **Secure Authentication** - Email/password login with NextAuth.js
 - 💳 **Payment Integration** - NOWPayments cryptocurrency payments
-- 📊 **Subscription Plans** - Free, Starter, Pro, Enterprise tiers with PDF limits
+- 📊 **Subscription Plans** - Free and Pro plans with PDF limits
 - 📄 **50+ Element Types** - Comprehensive library for document building
 - 🎨 **Text Formatting** - Bold, italic, underline support for all text elements
 - 🗜️ **Data Compression** - Document data compressed before storage
@@ -112,7 +112,7 @@ QuickDocs follows a **microservices-ready architecture** designed for scalabilit
 | 💾 **Database** | MongoDB Integration | Persistent data storage with Prisma ORM |
 | 💾 **Database** | User Profiles | Store user info, company details |
 | 💾 **Database** | Document Storage | Compressed JSON storage with hash deduplication |
-| 💰 **Subscription** | Plan System | Free (10 PDFs), Starter (50), Pro (200), Enterprise (Unlimited) |
+| 💰 **Subscription** | Plan System | Free (10 PDFs), Pro (Unlimited) |
 | 💳 **Payments** | NOWPayments Integration | Cryptocurrency payment processing |
 | 💳 **Payments** | Payment Webhooks | Real-time payment confirmation |
 | 💳 **Payments** | Plan Upgrades | Upgrade subscription after payment |
@@ -267,7 +267,10 @@ quickdocs/
 │   │   │   ├── 📂 payments/         # Payment endpoints
 │   │   │   ├── 📂 webhooks/         # Webhook handlers
 │   │   │   │   └── 📂 nowpayments/  # NOWPayments IPN
+│   │   │   ├── 📂 downloads/        # PDF download history
 │   │   │   ├── 📂 seed/             # Database seeding
+│   │   │   ├── 📂 seed-plans/       # Plan seeding
+│   │   │   ├── 📂 cancel-plan/      # Cancel subscription
 │   │   │   └── 📂 health/           # Health check
 │   │   ├── 📂 payment/              # Payment page
 │   │   ├── 📄 page.tsx              # Dashboard (protected)
@@ -283,6 +286,7 @@ quickdocs/
 │   │   │   └── 📄 PDFPreviewModal.tsx
 │   │   ├── 📂 providers/            # React providers
 │   │   │   └── 📄 Providers.tsx
+│   │   ├── 📄 DownloadHistory.tsx   # Download history component
 │   │   └── 📂 ui/                   # shadcn/ui components
 │   │
 │   ├── 📂 lib/                      # Utilities
@@ -365,18 +369,21 @@ model Plan {
 ### Payment Model
 ```prisma
 model Payment {
-  id              String   @id @default(auto())
+  id              String        @id @default(auto())
   userId          String
-  planId          String
-  amount          Float
-  currency        String
-  paymentId       String   @unique // NOWPayments ID
-  paymentStatus   String
-  payAddress      String?
-  payAmount       Float?
-  user            User     @relation(...)
-  plan            Plan     @relation(...)
-  createdAt       DateTime @default(now())
+  user            User          @relation(...)
+  paymentId       String        @unique // NOWPayments payment ID
+  invoiceId       String?       // NOWPayments invoice ID
+  orderId         String        // Internal order ID
+  amount          Float         // Amount in USD
+  payCurrency     String?       // Cryptocurrency used
+  payAmount       Float?        // Amount in crypto
+  status          PaymentStatus @default(pending)
+  paymentAddress  String?       // Crypto deposit address
+  actuallyPaid    Float?        // Actually paid amount
+  webhookData     String?       // Last webhook payload
+  createdAt       DateTime      @default(now())
+  paidAt          DateTime?     // Payment confirmed
 }
 ```
 
@@ -472,6 +479,7 @@ model Document {
 |--------|----------|-------------|
 | `POST` | `/api/payments` | Create payment request |
 | `GET` | `/api/payments` | Get payment status |
+| `POST` | `/api/cancel-plan` | Cancel current subscription |
 
 **Create Payment Request:**
 ```json
@@ -480,6 +488,14 @@ model Document {
   "successUrl": "http://localhost:3000?payment=success"
 }
 ```
+
+### Downloads
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/downloads` | List user's download history |
+| `POST` | `/api/downloads` | Save PDF download |
+| `GET` | `/api/downloads/[id]` | Get PDF data for redownload |
 
 ### Webhooks
 
@@ -492,7 +508,7 @@ model Document {
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/seed` | Seed plans and default templates |
-| `POST` | `/api/seed-plans` | Seed subscription plans |
+| `POST` | `/api/seed-plans` | Seed subscription plans only |
 
 ### Health Check
 
@@ -594,6 +610,8 @@ NOWPAYMENTS_IPN_SECRET=your_ipn_secret
    - `/api/documents` - Document CRUD
    - `/api/templates` - Template management
    - `/api/payments` - Payment processing
+   - `/api/downloads` - PDF download history
+   - `/api/cancel-plan` - Subscription cancellation
    - `/api/webhooks/nowpayments` - Payment webhooks
    - `/api/seed` - Database initialization
    - `/api/health` - System health check
@@ -604,6 +622,7 @@ NOWPAYMENTS_IPN_SECRET=your_ipn_secret
     - Plan indicator
     - Recent documents list
     - Template browser
+    - Download history
 
 ### 🚧 Remaining
 
