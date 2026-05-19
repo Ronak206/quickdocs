@@ -507,9 +507,7 @@ model Document {
 | Plan | Price | PDFs/Month | Templates | Storage |
 |------|-------|------------|-----------|---------|
 | **Free** | $0 | 10 | 5 | 10 MB |
-| **Starter** | $9.99 | 50 | 20 | 100 MB |
-| **Pro** | $29.99 | 200 | 100 | 500 MB |
-| **Enterprise** | $99.99 | Unlimited | Unlimited | 10 GB |
+| **Pro** | $30 USDT | Unlimited | Unlimited | 1 GB |
 
 ---
 
@@ -558,7 +556,7 @@ NOWPAYMENTS_IPN_SECRET=your_ipn_secret
    - Activity logging model
 
 3. **Subscription & Plans**
-   - Plan seeding (Free, Starter, Pro, Enterprise)
+   - Plan seeding (Free, Pro)
    - Subscription management
    - PDF limit enforcement
 
