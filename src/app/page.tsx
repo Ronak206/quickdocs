@@ -729,12 +729,11 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Documents', value: stats.documents, icon: FileText },
           { label: 'Templates', value: stats.templates, icon: Layout },
           { label: 'Categories', value: stats.categories || CATEGORIES.length, icon: FolderOpen },
-          { label: 'Downloads', value: formatNumber(stats.downloads), icon: Download },
         ].map((stat) => (
           <Card key={stat.label}>
             <CardHeader className="pb-2 relative">
