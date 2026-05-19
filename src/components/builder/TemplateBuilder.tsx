@@ -109,8 +109,6 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
   const [initialPos, setInitialPos] = useState<Position>({ x: 0, y: 0 });
   const [showPreview, setShowPreview] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['Text', 'Input']);
-  const [activeRightTab, setActiveRightTab] = useState<string>('properties');
-  const [jsonInput, setJsonInput] = useState<string>('');
   
   // PDF Preview Modal state
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
@@ -420,17 +418,6 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
 
   const handleCanvasDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-  };
-
-  // Handle JSON quick fill
-  const handleJsonFill = () => {
-    try {
-      const data = JSON.parse(jsonInput);
-      setFormData(data);
-      toast.success('Form data updated from JSON');
-    } catch (error) {
-      toast.error('Invalid JSON format');
-    }
   };
 
   // Color picker component
@@ -3404,7 +3391,7 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
           {/* Right Panel - Properties & Data Form */}
           <Panel defaultSize={30} minSize={20} maxSize={45} className="bg-card border-l">
             <div className="h-full flex flex-col">
-              <Tabs defaultValue="properties" value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col overflow-hidden">
+              <Tabs defaultValue="properties" className="flex-1 flex flex-col overflow-hidden">
                 <div className="px-4 py-2 border-b bg-muted/30 shrink-0">
                   <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="properties" className="text-xs">Properties</TabsTrigger>
