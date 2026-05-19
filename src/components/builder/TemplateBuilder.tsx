@@ -671,7 +671,7 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 width: '100%',
                 height: '100%',
                 fontSize: properties.fontSize || 24,
-                fontWeight: properties.bold ? 'bold' : 'bold',
+                fontWeight: properties.bold ? 'bold' : '600',
                 fontStyle: properties.italic ? 'italic' : 'normal',
                 textDecoration: properties.underline ? 'underline' : 'none',
                 color: properties.color || '#000000',
@@ -747,6 +747,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 width: '100%',
                 height: '100%',
                 fontSize: properties.fontSize || 14,
+                fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 color: properties.color || '#000000',
                 backgroundColor: properties.backgroundColor || '#ffffff',
                 border: `${properties.borderWidth || 1}px solid ${properties.borderColor || '#d1d5db'}`,
@@ -767,6 +770,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 width: '100%',
                 height: '100%',
                 fontSize: properties.fontSize || 14,
+                fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 color: properties.color || '#000000',
                 backgroundColor: properties.backgroundColor || '#ffffff',
                 border: `${properties.borderWidth || 1}px solid ${properties.borderColor || '#d1d5db'}`,
@@ -789,6 +795,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 width: '100%',
                 height: '100%',
                 fontSize: properties.fontSize || 14,
+                fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 color: properties.color || '#000000',
                 backgroundColor: properties.backgroundColor || '#ffffff',
                 border: `${properties.borderWidth || 1}px solid ${properties.borderColor || '#d1d5db'}`,
@@ -814,6 +823,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                   flex: 1,
                   height: '100%',
                   fontSize: properties.fontSize || 14,
+                  fontWeight: properties.bold ? 'bold' : 'normal',
+                  fontStyle: properties.italic ? 'italic' : 'normal',
+                  textDecoration: properties.underline ? 'underline' : 'none',
                   color: properties.color || '#000000',
                   backgroundColor: properties.backgroundColor || '#ffffff',
                   border: `${properties.borderWidth || 1}px solid ${properties.borderColor || '#d1d5db'}`,
@@ -836,6 +848,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 width: '100%',
                 height: '100%',
                 fontSize: properties.fontSize || 14,
+                fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 color: properties.color || '#000000',
                 backgroundColor: properties.backgroundColor || '#ffffff',
                 border: `${properties.borderWidth || 1}px solid ${properties.borderColor || '#d1d5db'}`,
@@ -856,6 +871,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 width: '100%',
                 height: '100%',
                 fontSize: properties.fontSize || 14,
+                fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 color: properties.color || '#000000',
                 backgroundColor: properties.backgroundColor || '#ffffff',
                 border: `${properties.borderWidth || 1}px solid ${properties.borderColor || '#d1d5db'}`,
@@ -876,6 +894,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 width: '100%',
                 height: '100%',
                 fontSize: properties.fontSize || 14,
+                fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 color: properties.color || '#000000',
                 backgroundColor: properties.backgroundColor || '#ffffff',
                 border: `${properties.borderWidth || 1}px solid ${properties.borderColor || '#d1d5db'}`,
@@ -1523,9 +1544,10 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
               target={properties.target || '_self'}
               style={{
                 color: '#3B82F6',
-                textDecoration: 'underline',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 fontSize: properties.fontSize || 14,
                 fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
@@ -1556,6 +1578,8 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
                 borderRadius: properties.borderRadius || 6,
                 fontSize: properties.fontSize || 14,
                 fontWeight: properties.bold ? 'bold' : 'normal',
+                fontStyle: properties.italic ? 'italic' : 'normal',
+                textDecoration: properties.underline ? 'underline' : 'none',
                 cursor: 'pointer',
                 ...buttonStyles[properties.buttonStyle || 'primary'],
               }}
@@ -2037,9 +2061,9 @@ export default function TemplateBuilder({ onBack, onTemplateSaved, initialTempla
           </CollapsibleSection>
 
           {/* Text properties for text elements */}
-          {['label', 'heading', 'paragraph', 'rich-text', 'textfield', 'textarea', 'number', 'currency', 'email', 'phone', 'url', 'password', 'date', 'time', 'datetime'].includes(type) && (
+          {['label', 'heading', 'paragraph', 'rich-text', 'textfield', 'textarea', 'number', 'currency', 'email', 'phone', 'url', 'password', 'date', 'time', 'datetime', 'button', 'hyperlink'].includes(type) && (
             <CollapsibleSection id="text" title="Text">
-              {['label', 'heading', 'paragraph', 'rich-text'].includes(type) && (
+              {['label', 'heading', 'paragraph', 'rich-text', 'button', 'hyperlink'].includes(type) && (
                 <div>
                   <Label className="text-xs">Content</Label>
                   <StableTextarea
