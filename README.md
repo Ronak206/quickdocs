@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![QuickDocs Logo](public/favicon.svg)
+<img src="public/favicon.svg" alt="QuickDocs Logo" width="80" height="80">
 
 **Professional PDF Document Builder**
 
