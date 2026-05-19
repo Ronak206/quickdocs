@@ -240,10 +240,12 @@ export default function Dashboard() {
         return;
       }
       
-      // Redirect to NOWPayments invoice URL
+      // Redirect to NOWPayments invoice URL in new tab
       if (data.invoice_url) {
-        toast.success('Redirecting to NOWPayments...');
-        window.location.href = data.invoice_url;
+        toast.success('Opening NOWPayments payment page...');
+        window.open(data.invoice_url, '_blank');
+        // Show info to user
+        toast.info('Complete your payment in the new tab, then check your status.');
       } else if (data.pay_address) {
         // Direct payment - show address
         toast.success('Payment address generated!');
